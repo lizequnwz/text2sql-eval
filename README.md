@@ -10,6 +10,8 @@ The two LLM judges use LangChain's `ChatOpenAI.with_structured_output()` with a 
 
 This package accepts pre-executed query results. It does not connect to a database or execute SQL.
 
+Each evaluation writes a JSON report and a standalone interactive HTML report. The HTML lets you inspect questions, SQL, result previews, and judge evidence without another model call.
+
 ## What each score means
 
 | Metric key | A confirmed PASS means | What it does not establish |
@@ -89,15 +91,59 @@ uv run python -m text2sql_eval \
 
 `--concurrency` bounds active cases. Each case can make two concurrent LLM requests, so `--concurrency 4` can produce up to eight in-flight requests. Timeouts and retries are passed to `ChatOpenAI`.
 
-The report contains `package_version`, per-case `results`, and a separate `summary` for each metric. It is written atomically after the evaluation completes.
+The JSON report contains `package_version`, per-case `results`, and a separate `summary` for each metric. The command also creates `reports/evaluation.html` beside it. Use `--html-output` to choose a different HTML path:
+
+```bash
+uv run text2sql-eval \
+  --input examples/cases.jsonl \
+  --output reports/evaluation.json \
+  --html-output reports/review.html
+```
+
+The output paths must be distinct from one another and from the input. They are checked before model requests. JSON is written first; if HTML export fails, the completed JSON report is preserved and the command exits with code `2`.
 
 | Exit code | Meaning |
 | --- | --- |
 | `0` | Evaluation completed with no metric `ERROR`. `FAIL` and `REVIEW` are valid evaluation outcomes. |
-| `1` | A report was written, but at least one metric has status `ERROR`. |
-| `2` | Input or configuration was invalid; evaluation did not complete normally. |
+| `1` | Both reports were written, but at least one metric has status `ERROR`. |
+| `2` | Input, configuration, or report writing failed. A completed JSON report can remain if HTML writing fails. |
 
 Run `uv run text2sql-eval --help` for all options.
+
+## Inspect or export an HTML report
+
+Open the generated HTML file in a browser. It is a single offline file with no CDN or JavaScript framework. It provides:
+
+- Three summary cards for the complete run, using the fixed evaluation denominator.
+- Search, metric/status filters, and a filter for confirmed PASS-versus-FAIL disagreement between the two judges.
+- A sortable case table with 25 cases per page.
+- Expandable questions, side-by-side SQL, independent result previews, and judge reasons, evidence, and metadata.
+- Light/dark themes, keyboard controls, and a print layout.
+
+Filters change the visible case list; they do not recompute whole-run summary rates. Each query preview contains at most 50 rows, with its full row count and truncation state shown separately.
+
+You can create HTML from an existing JSON report without credentials, SQL execution, or LLM calls:
+
+```bash
+uv run text2sql-eval-report \
+  --cases examples/cases.jsonl \
+  --results reports/evaluation.json \
+  --output reports/evaluation.html
+```
+
+Keep the original cases file. The JSON scoring report does not store questions, SQL, or query previews. The exporter joins cases and scores by `case_id`, requires unique matching ID sets, preserves the saved score order, and checks saved summaries against the actual metric statuses. It cannot verify that a supplied case is the original execution evidence based on its ID alone.
+
+The exporter exits `0` when it writes the report, including reports that contain stored `ERROR` scores. Invalid input or a writing failure returns `2`.
+
+To explore the interface with fabricated data and no model setup:
+
+```bash
+uv run python examples/html_report.py --output reports/demo.html
+```
+
+The demo creates 36 clearly labeled synthetic cases and canned judge decisions. It is a report demonstration, not an evaluation run or evidence of judge accuracy.
+
+HTML reports contain the supplied SQL and up to 50 result rows per query. Share them with the same care as those inputs. See [the HTML report guide](docs/html-reports.md) for export and interpretation details.
 
 ## Use the Python API
 
@@ -156,6 +202,16 @@ summary = summarize(results)
 ```
 
 `aevaluate()` runs both judge calls concurrently. Batch methods preserve input order. See [the API reference](docs/api.md) and [the Python example](examples/evaluate.py).
+
+To write an HTML report from Python after scoring:
+
+```python
+from text2sql_eval import write_html_report
+
+results = evaluator.evaluate_many(cases)
+path = write_html_report(cases, results, "reports/evaluation.html")
+print(path)
+```
 
 ## Input contract
 
@@ -262,10 +318,20 @@ uv build
 
 The test suite uses offline recording models. It checks routing, judge isolation, truncation, uncertainty, failure handling, and fixed denominators without API keys or paid LLM requests. These checks establish package behavior, not judge accuracy. Review a human-labeled sample of your own ordering, tie, extra-column, and logic-error cases before claiming a reduction in false positives or false negatives.
 
+Optional report interaction checks use Node.js 26 or later and jsdom:
+
+```bash
+npm ci
+npm run test:report
+```
+
+This generates the synthetic demonstration and checks search, filtering, sorting, pagination, details, keyboard focus, themes, and safe text rendering without a browser or network requests. It does not perform browser layout or screenshot tests. Node.js is not required to install the Python package or read generated reports.
+
 ## Further reading
 
 - [API reference](docs/api.md)
 - [Judging guide](docs/judging.md)
+- [HTML report guide](docs/html-reports.md)
 - [LangChain structured output reference](https://reference.langchain.com/python/langchain-openai/chat_models/base/ChatOpenAI/with_structured_output)
 - [FLEX: Expert-level False-Less EXecution Metric, NAACL 2025](https://aclanthology.org/2025.naacl-long.228.pdf)
 - [PostgreSQL LIMIT and OFFSET](https://www.postgresql.org/docs/current/queries-limit.html)

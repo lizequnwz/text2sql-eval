@@ -8,9 +8,9 @@ from importlib.resources import files
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
-from text2sql_eval.models import EvaluationCase, QueryResult
+from text2sql_eval.models import EvaluationCase
+from text2sql_eval.preview import preview_result
 
-PREVIEW_LIMIT = 50
 PROMPT_FILES = {
     "sampled_result_consistency": "sampled_result_consistency.md",
     "sql_semantic": "sql_semantics.md",
@@ -41,19 +41,6 @@ def _question_payload(case: EvaluationCase) -> dict[str, object]:
     }
 
 
-def _preview(result: QueryResult) -> dict[str, object]:
-    shown_rows = min(len(result.rows), PREVIEW_LIMIT)
-    return {
-        "columns": result.columns,
-        "rows": result.rows[:PREVIEW_LIMIT],
-        "total_rows": result.total_rows,
-        "provided_rows": len(result.rows),
-        "shown_rows": shown_rows,
-        "truncated": result.total_rows is not None and result.total_rows > shown_rows,
-        "execution_error": result.execution_error,
-    }
-
-
 def _messages(metric: str, payload: dict[str, object]) -> list[BaseMessage]:
     return [
         SystemMessage(content=system_prompt(metric)),
@@ -64,8 +51,8 @@ def _messages(metric: str, payload: dict[str, object]) -> list[BaseMessage]:
 def build_sampled_messages(case: EvaluationCase) -> list[BaseMessage]:
     """Give the sampled judge SQL plus at most 50 rows from each supplied preview."""
     payload = _question_payload(case)
-    payload["target_result"] = _preview(case.target_result)
-    payload["generated_result"] = _preview(case.generated_result)
+    payload["target_result"] = preview_result(case.target_result)
+    payload["generated_result"] = preview_result(case.generated_result)
     return _messages("sampled_result_consistency", payload)
 
 

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
 from conftest import RecordingModel, decision
+from test_html_report import ReportParser
 
 from text2sql_eval import cli
 
@@ -154,6 +156,10 @@ def test_cli_writes_a_complete_structured_report_without_network(
         assert report["results"][0][name]["score"] == 1
     assert json.loads(capsys.readouterr().out) == report["summary"]
     assert not list(output.parent.glob(".scores.json.*"))
+    html_output = output.with_suffix(".html")
+    html_payload = ReportParser(html_output.read_text(encoding="utf-8")).payload
+    assert html_payload["summary"] == report["summary"]
+    assert [item["case_id"] for item in html_payload["cases"]] == ["first", "second"]
 
 
 def test_sql_failures_are_results_not_cli_operational_errors(tmp_path, make_case, monkeypatch):
@@ -237,3 +243,134 @@ def test_cli_refuses_to_replace_its_input_dataset(tmp_path, make_case, monkeypat
         cli.main(["--input", str(source), "--output", str(source), "--model", "fake"])
     assert raised.value.code == 2
     assert source.read_text(encoding="utf-8") == before
+
+
+def test_custom_html_destination_replaces_the_default_without_extra_judge_calls(
+    tmp_path, make_case, monkeypatch
+):
+    source = write_cases(tmp_path / "cases.jsonl", make_case())
+    output = tmp_path / "scores.json"
+    html_output = tmp_path / "custom" / "review.html"
+    model = RecordingModel()
+    monkeypatch.setattr(cli, "ChatOpenAI", lambda **kwargs: model)
+    assert (
+        cli.main(
+            [
+                "--input",
+                str(source),
+                "--output",
+                str(output),
+                "--html-output",
+                str(html_output),
+                "--model",
+                "fake",
+            ]
+        )
+        == 0
+    )
+    assert len(model.calls) == 2
+    assert html_output.exists()
+    assert not output.with_suffix(".html").exists()
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert set(report) == {"package_version", "results", "summary"}
+    assert set(report["summary"]) == {
+        "row_count_match",
+        "sampled_result_consistency",
+        "sql_semantic",
+    }
+
+
+@pytest.mark.parametrize("collision", ["source", "json", "symlink_source", "hardlink_json"])
+def test_html_path_collisions_are_rejected_before_model_setup(
+    tmp_path, make_case, monkeypatch, collision
+):
+    source = write_cases(tmp_path / "cases.jsonl", make_case())
+    original_source = source.read_bytes()
+    output = tmp_path / "scores.json"
+    output.write_text("original scores", encoding="utf-8")
+    if collision == "source":
+        html_output = source
+    elif collision == "json":
+        html_output = output
+    elif collision == "symlink_source":
+        html_output = tmp_path / "alias.html"
+        html_output.symlink_to(source)
+    else:
+        html_output = tmp_path / "alias.html"
+        os.link(output, html_output)
+    forbid_provider(monkeypatch)
+    with pytest.raises(SystemExit) as raised:
+        cli.main(
+            [
+                "--input",
+                str(source),
+                "--output",
+                str(output),
+                "--html-output",
+                str(html_output),
+                "--model",
+                "fake",
+            ]
+        )
+    assert raised.value.code == 2
+    assert source.read_bytes() == original_source
+    assert output.read_text(encoding="utf-8") == "original scores"
+
+
+def test_default_html_path_cannot_overwrite_the_input(tmp_path, make_case, monkeypatch):
+    source = write_cases(tmp_path / "scores.html", make_case())
+    before = source.read_bytes()
+    forbid_provider(monkeypatch)
+    with pytest.raises(SystemExit) as raised:
+        cli.main(
+            [
+                "--input",
+                str(source),
+                "--output",
+                str(tmp_path / "scores.json"),
+                "--model",
+                "fake",
+            ]
+        )
+    assert raised.value.code == 2
+    assert source.read_bytes() == before
+
+
+def test_json_output_cannot_replace_input_through_a_hard_link(tmp_path, make_case, monkeypatch):
+    source = write_cases(tmp_path / "cases.jsonl", make_case())
+    before = source.read_bytes()
+    output = tmp_path / "alias.json"
+    os.link(source, output)
+    forbid_provider(monkeypatch)
+    with pytest.raises(SystemExit) as raised:
+        cli.main(["--input", str(source), "--output", str(output), "--model", "fake"])
+    assert raised.value.code == 2
+    assert source.read_bytes() == before
+
+
+def test_html_write_failure_keeps_the_completed_json_report(
+    tmp_path, make_case, monkeypatch, capsys
+):
+    source = write_cases(tmp_path / "cases.jsonl", make_case())
+    output = tmp_path / "scores.json"
+    occupied_parent = tmp_path / "occupied"
+    occupied_parent.write_text("not a directory", encoding="utf-8")
+    model = RecordingModel()
+    monkeypatch.setattr(cli, "ChatOpenAI", lambda **kwargs: model)
+    code = cli.main(
+        [
+            "--input",
+            str(source),
+            "--output",
+            str(output),
+            "--html-output",
+            str(occupied_parent / "scores.html"),
+            "--model",
+            "fake",
+        ]
+    )
+    assert code == 2
+    assert len(model.calls) == 2
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["summary"]["sql_semantic"]["passed"] == 1
+    assert "html" in capsys.readouterr().err.lower()

@@ -1,6 +1,6 @@
 [project]
 name = "text2sql-eval"
-version = "0.1.0"
+version = "0.2.0"
 description = "Three transparent scores for text-to-SQL: row counts, sampled consistency, and SQL semantics."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -26,6 +26,7 @@ Issues = "https://github.com/lizequnwz/text2sql-eval/issues"
 
 [project.scripts]
 text2sql-eval = "text2sql_eval.cli:main"
+text2sql-eval-report = "text2sql_eval.report_cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8,<10", "ruff>=0.14,<1", "build>=1.2,<2", "httpx>=0.28,<1"]

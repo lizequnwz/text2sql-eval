@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Text-to-SQL evaluation report</title>
+  <style>__REPORT_CSS__</style>
+</head>
+<body>
+  <a class="skip-link" href="#case-explorer">Skip to evaluation cases</a>
+  <div class="page-shell">
+    <header class="report-header">
+      <div class="brand-line">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h14M5 12h10M5 18h14"/><path d="m17 9 3 3-3 3"/></svg></span><span>Text2SQL<span class="brand-divider">/</span><span class="brand-muted">Evaluation</span></span></div>
+        <div class="header-actions">
+          <button id="theme-toggle" class="button button-secondary" type="button">Dark theme</button>
+          <button id="print-report" class="button button-secondary" type="button">Print current view</button>
+        </div>
+      </div>
+      <div class="report-heading">
+        <div>
+          <p class="eyebrow">EVALUATION REPORT</p>
+          <h1 id="report-title">Text-to-SQL evaluation report</h1>
+          <p class="report-subtitle">A clear view of results, evidence, and SQL meaning.</p>
+        </div>
+        <div class="run-meta" id="run-meta"></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="overview" aria-labelledby="overview-heading">
+        <div class="section-heading"><h2 id="overview-heading">Evaluation overview</h2><span id="total-cases" class="count-label"></span></div>
+        <div id="metric-cards" class="metric-cards"></div>
+        <div class="reading-note"><span class="note-mark" aria-hidden="true">i</span><p>These are three separate measures. Sampled consistency does not establish full-result equality. Review cases and errors stay in the denominator.</p></div>
+      </section>
+
+      <section id="case-explorer" class="explorer" aria-labelledby="cases-heading" tabindex="-1">
+        <div class="explorer-heading">
+          <div><p class="eyebrow">INSPECT THE EVIDENCE</p><h2 id="cases-heading">Evaluation cases</h2></div>
+          <p class="section-description">Open a case to review its SQL, previews, and judge explanations.</p>
+        </div>
+        <div class="filter-bar">
+          <div class="field search-field"><label for="case-search">Search cases</label><input id="case-search" type="search" placeholder="Question, case ID, SQL, or reason" autocomplete="off" spellcheck="false"></div>
+          <div class="field"><label for="metric-filter">Metric</label><select id="metric-filter"><option value="all">All metrics</option><option value="row_count_match">Row count match</option><option value="sampled_result_consistency">Sampled consistency</option><option value="sql_semantic">SQL semantics</option></select></div>
+          <div class="field"><label for="status-filter">Status</label><select id="status-filter"><option value="all">All statuses</option><option value="PASS">Pass</option><option value="FAIL">Fail</option><option value="REVIEW">Review</option><option value="ERROR">Error</option></select></div>
+          <div class="filter-actions"><label class="checkbox-label" for="disagreement-filter"><input id="disagreement-filter" type="checkbox"><span>Judge disagreement</span></label><button id="clear-filters" class="button button-quiet" type="button">Reset view</button></div>
+        </div>
+        <div class="table-intro"><p id="result-count" role="status" aria-live="polite" aria-atomic="true"></p><p class="table-hint">Overview totals remain unchanged by filters.</p></div>
+        <div class="table-scroll case-table-scroll" tabindex="0" role="region" aria-label="Evaluation cases table, scroll horizontally if needed">
+          <table class="case-table" id="case-table">
+            <caption class="sr-only">Evaluation cases and the normalized status of each metric. Column heading buttons change sort order.</caption>
+            <thead><tr>
+              <th scope="col" aria-sort="none"><button class="sort-button" type="button" data-sort="case_id">Case ID<span class="sort-symbol" aria-hidden="true">↕</span></button></th>
+              <th scope="col" aria-sort="none"><button class="sort-button" type="button" data-sort="question">Question<span class="sort-symbol" aria-hidden="true">↕</span></button></th>
+              <th scope="col" aria-sort="none"><button class="sort-button" type="button" data-sort="row_count_match">Row count<span class="sort-symbol" aria-hidden="true">↕</span></button></th>
+              <th scope="col" aria-sort="none"><button class="sort-button" type="button" data-sort="sampled_result_consistency">Sampled result<span class="sort-symbol" aria-hidden="true">↕</span></button></th>
+              <th scope="col" aria-sort="none"><button class="sort-button" type="button" data-sort="sql_semantic">SQL semantics<span class="sort-symbol" aria-hidden="true">↕</span></button></th>
+            </tr></thead>
+            <tbody id="case-table-body"></tbody>
+          </table>
+        </div>
+        <div class="pagination"><span id="page-label" class="muted"></span><div><button id="prev-page" class="button button-secondary" type="button">Previous</button><button id="next-page" class="button button-secondary" type="button">Next</button></div></div>
+      </section>
+      <noscript><div class="reading-note">JavaScript is required to explore this self-contained report. Enable JavaScript and reopen the file. No network connection is required.</div></noscript>
+    </main>
+    <footer class="report-footer"><p><strong>Read-only review.</strong> A judge assessment is not a proof of SQL correctness. Result previews retain their original order and are not aligned record by record.</p><p>Positive means “SQL flagged as wrong.” A false positive rejects correct SQL; a false negative accepts incorrect SQL.</p><p class="print-note">Printed view includes the overview and the current case list, with any open case details.</p></footer>
+  </div>
+  <script type="application/json" id="report-data">__REPORT_DATA__</script>
+  <script>__REPORT_JS__</script>
+</body>
+</html>

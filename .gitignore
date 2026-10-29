@@ -11,3 +11,4 @@ build/
 !.env.example
 reports/
 .DS_Store
+node_modules/

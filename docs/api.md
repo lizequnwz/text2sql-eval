@@ -192,6 +192,61 @@ For example, 6 passes, 2 failures, 1 review, and 1 error give a pass rate of `0.
 
 Keep the three metric summaries separate. The package does not generate a combined accuracy number or an overall release decision.
 
+## HTML reports
+
+The public HTML functions accept validated cases and saved scoring results. They do not execute SQL or make LLM calls.
+
+### `render_html_report(cases, results, *, package_version="0.2.0", title="Text-to-SQL evaluation report") -> str`
+
+Returns a complete standalone HTML document. `cases` is a sequence of `EvaluationCase` objects and `results` is a sequence of `CaseScores` objects.
+
+```python
+from text2sql_eval import render_html_report
+
+html = render_html_report(
+    cases,
+    results,
+    package_version="0.2.0",
+    title="Sales evaluation · October",
+)
+```
+
+Each sequence must have unique case IDs, and the two ID sets must be identical. Records are joined by ID; the output preserves `results` order rather than assuming positional alignment. Invalid models or mismatched IDs are rejected. Whole-run summaries are calculated from the supplied results.
+
+No more than the first 50 rows from each query are embedded in the document. Extra supplied rows, including row 51, are not included as hidden report data. Counts and truncation labels retain the distinction between supplied previews and complete output counts.
+
+The document contains inline styles and scripts for searching, filtering, sorting, pagination, details, theme selection, and printing. It works offline and uses no CDN or JavaScript framework. User-controlled SQL, result cells, questions, and explanations are displayed as data.
+
+### `write_html_report(cases, results, path, *, package_version="0.2.0", title="Text-to-SQL evaluation report") -> Path`
+
+Renders and writes the document to a filesystem path, returning that `Path`.
+
+```python
+from text2sql_eval import write_html_report
+
+path = write_html_report(
+    cases,
+    results,
+    "reports/evaluation.html",
+    title="Customer sales review",
+)
+```
+
+The HTML contains SQL and result previews from the cases. The scoring JSON alone cannot reconstruct those inputs; keep the correct case/results association in your application.
+
+### Offline report command
+
+```bash
+text2sql-eval-report \
+  --cases examples/cases.jsonl \
+  --results reports/evaluation.json \
+  --output reports/evaluation.html
+```
+
+This command loads the original JSONL cases and a saved JSON report, validates unique matching IDs and saved summaries, then exports HTML without a model or credentials. It exits `0` for a successful export even when the saved report contains metric `ERROR` outcomes. Input or output failures return `2`.
+
+The evaluation command also writes HTML automatically beside its JSON output. `--html-output` selects a custom destination. JSON is written first, so a failed HTML export does not discard completed scores. See [the HTML report guide](html-reports.md) for details.
+
 ## Prompt inspection
 
 The prompt helpers live in `text2sql_eval.prompts`:

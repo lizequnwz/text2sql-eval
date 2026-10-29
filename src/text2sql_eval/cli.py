@@ -7,15 +7,15 @@ import asyncio
 import json
 import os
 import sys
-import tempfile
 from pathlib import Path
 
 from langchain_openai import ChatOpenAI
-from pydantic import ValidationError
 
 from text2sql_eval import __version__
 from text2sql_eval.evaluator import Evaluator
-from text2sql_eval.models import EvaluationCase
+from text2sql_eval.html_report import write_html_report
+from text2sql_eval.models import EvaluationReport
+from text2sql_eval.report_io import load_cases, require_distinct_paths, write_json_report
 from text2sql_eval.reporting import METRIC_NAMES, summarize
 
 
@@ -33,43 +33,6 @@ def _nonnegative_int(value: str) -> int:
     return parsed
 
 
-def load_cases(path: Path) -> list[EvaluationCase]:
-    """Validate every record before making any paid requests; never drop invalid cases."""
-    cases: list[EvaluationCase] = []
-    ids: set[str] = set()
-    with path.open(encoding="utf-8") as handle:
-        for line_number, line in enumerate(handle, start=1):
-            if not line.strip():
-                continue
-            try:
-                case = EvaluationCase.model_validate_json(line)
-            except ValidationError as exc:
-                raise ValueError(f"Invalid case at {path}:{line_number}: {exc}") from exc
-            if case.case_id in ids:
-                raise ValueError(f"Duplicate case_id at {path}:{line_number}: {case.case_id}")
-            ids.add(case.case_id)
-            cases.append(case)
-    if not cases:
-        raise ValueError("The input contains no evaluation cases.")
-    return cases
-
-
-def _write_report(path: Path, content: dict[str, object]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary_path: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w", encoding="utf-8", dir=path.parent, prefix=f".{path.name}.", delete=False
-        ) as handle:
-            temporary_path = Path(handle.name)
-            json.dump(content, handle, ensure_ascii=False, allow_nan=False, indent=2)
-            handle.write("\n")
-        os.replace(temporary_path, path)
-    finally:
-        if temporary_path is not None:
-            temporary_path.unlink(missing_ok=True)
-
-
 def main(argv: list[str] | None = None) -> int:
     """Run all three metrics, preserving judge errors in the output report."""
     parser = argparse.ArgumentParser(
@@ -77,6 +40,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--input", type=Path, required=True, help="Evaluation cases as JSONL.")
     parser.add_argument("--output", type=Path, required=True, help="Destination JSON report.")
+    parser.add_argument(
+        "--html-output", type=Path, help="HTML destination (default: JSON path with .html suffix)."
+    )
     parser.add_argument("--model", default=os.environ.get("OPENAI_MODEL"))
     parser.add_argument("--base-url", default=os.environ.get("OPENAI_BASE_URL"))
     parser.add_argument(
@@ -94,10 +60,11 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--timeout must be a positive, finite number.")
     if args.temperature is not None and not 0 <= args.temperature <= 2:
         parser.error("--temperature must be between 0 and 2.")
-    if args.input.resolve() == args.output.resolve():
-        parser.error("--output must not overwrite the input dataset.")
-
+    html_output = (
+        args.html_output if args.html_output is not None else args.output.with_suffix(".html")
+    )
     try:
+        require_distinct_paths(args.input, args.output, html_output)
         cases = load_cases(args.input)
         kwargs: dict[str, object] = {
             "model": args.model,
@@ -121,12 +88,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         results = asyncio.run(evaluator.aevaluate_many(cases, concurrency=args.concurrency))
         summary = summarize(results)
-        report = {
-            "package_version": __version__,
-            "results": [result.model_dump(mode="json") for result in results],
-            "summary": {name: item.model_dump(mode="json") for name, item in summary.items()},
-        }
-        _write_report(args.output, report)
+        report = EvaluationReport(package_version=__version__, results=results, summary=summary)
+        write_json_report(args.output, report)
     except OSError as exc:
         print(f"Could not write the report: {exc}", file=sys.stderr)
         return 2
@@ -134,7 +97,17 @@ def main(argv: list[str] | None = None) -> int:
         print("Evaluation interrupted; no completed report was written.", file=sys.stderr)
         return 130
 
-    print(json.dumps(report["summary"], indent=2))
+    try:
+        write_html_report(cases, results, html_output, package_version=__version__)
+    except (OSError, ValueError) as exc:
+        print(
+            f"JSON report saved to {args.output}, but could not write the HTML report: {exc}. "
+            "Use text2sql-eval-report to retry rendering without rerunning the judges.",
+            file=sys.stderr,
+        )
+        return 2
+
+    print(json.dumps({name: item.model_dump() for name, item in summary.items()}, indent=2))
     return int(
         any(getattr(result, name).status == "ERROR" for result in results for name in METRIC_NAMES)
     )

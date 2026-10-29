@@ -134,6 +134,13 @@ class CaseScores(StrictModel):
     sampled_result_consistency: MetricResult
     sql_semantic: MetricResult
 
+    @model_validator(mode="after")
+    def metric_names_match_fields(self) -> Self:
+        for name in ("row_count_match", "sampled_result_consistency", "sql_semantic"):
+            if getattr(self, name).name != name:
+                raise ValueError(f"{name} must contain a metric with that same name.")
+        return self
+
 
 class MetricSummary(StrictModel):
     cases: int
@@ -143,3 +150,11 @@ class MetricSummary(StrictModel):
     errors: int
     pass_rate: float | None
     decision_coverage: float | None
+
+
+class EvaluationReport(StrictModel):
+    """The existing saved JSON shape, now validated for offline report export."""
+
+    package_version: NonEmptyString
+    results: list[CaseScores]
+    summary: dict[MetricName, MetricSummary]
