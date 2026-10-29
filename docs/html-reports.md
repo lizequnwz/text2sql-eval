@@ -8,6 +8,8 @@ The files in `src/text2sql_eval/assets/` are internal rendering resources. In pa
 
 The HTML report is an offline view of existing evaluation evidence. It helps you find cases to inspect; it does not rescore SQL, run queries, or call a model.
 
+For a guided setup and a Bash helper for demo, evaluation, and saved-report export, see [Running evaluations](running-evaluations.md).
+
 ## Create a report during evaluation
 
 ```bash

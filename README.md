@@ -14,6 +14,31 @@ This package accepts pre-executed query results. It does not connect to a databa
 
 Each evaluation writes a JSON report and a standalone interactive HTML report. The HTML lets you inspect questions, SQL, result previews, and judge evidence without another model call.
 
+## Quick start with Bash
+
+```bash
+bash scripts/eval.sh setup
+bash scripts/eval.sh demo
+```
+
+The demo creates `reports/demo.html` without credentials or model calls. For your own prepared cases:
+
+```bash
+export OPENAI_API_KEY="your-api-key"
+export OPENAI_MODEL="your-structured-output-model"
+bash scripts/eval.sh eval --input data/cases.jsonl
+```
+
+This creates `reports/evaluation.json` and `reports/evaluation.html`. To recreate HTML from saved scores:
+
+```bash
+bash scripts/eval.sh report \
+  --cases data/cases.jsonl \
+  --results reports/evaluation.json
+```
+
+The input must already include generated SQL, query previews, and complete row counts. Questions and target SQL alone are the starting gold set, not the prepared scoring input. Follow [Running evaluations](docs/running-evaluations.md) for the full process and input example. The helper works on macOS/Linux; Node.js is not needed.
+
 ## What each score means
 
 | Metric key | A confirmed PASS means | What it does not establish |

@@ -108,6 +108,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     print(json.dumps({name: item.model_dump() for name, item in summary.items()}, indent=2))
+    print(f"JSON report: {args.output.resolve()}", file=sys.stderr)
+    print(f"HTML report: {html_output.resolve()}", file=sys.stderr)
     return int(
         any(getattr(result, name).status == "ERROR" for result in results for name in METRIC_NAMES)
     )
