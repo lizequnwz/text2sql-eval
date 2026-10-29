@@ -89,7 +89,7 @@ def render_html_report(
         "cases": joined,
     }
     assets = files("text2sql_eval").joinpath("assets")
-    template = assets.joinpath("report.html").read_text(encoding="utf-8")
+    template = assets.joinpath("report.html.template").read_text(encoding="utf-8")
     # One replacement pass prevents data containing placeholder names from becoming markup.
     pieces = {
         "__REPORT_CSS__": assets.joinpath("report.css").read_text(encoding="utf-8"),

@@ -56,7 +56,8 @@
       const card = element("article", "metric-card");
       const top = element("div", "metric-topline");
       top.append(element("span", "metric-index", `0${index + 1}`), element("h3", "metric-name", metric.label));
-      card.append(top, element("p", "metric-number", formatRate(summary.pass_rate)),
+      card.append(top, element("p", "metric-rate-label", "Pass rate"),
+        element("p", "metric-number", formatRate(summary.pass_rate)),
         element("p", "metric-count", `${number.format(summary.passed)} of ${number.format(summary.cases)} cases passed`),
         element("p", "metric-description", metric.description));
       const bar = element("div", "status-bar");
@@ -130,6 +131,7 @@
     row.append(idCell, element("td", "case-question", record.data.question));
     metricDefinitions.forEach(metric => {
       const cell = element("td", "status-cell");
+      cell.dataset.label = metric.label;
       cell.append(statusBadge(record.data.scores[metric.key].status));
       row.append(cell);
     });
@@ -287,7 +289,7 @@
     const judgmentGrid = element("div", "metric-detail-grid");
     metricDefinitions.forEach(metric => judgmentGrid.append(metricDetail(metric, record.data.scores[metric.key])));
     judgments.append(judgmentGrid);
-    detail.append(sql, previews, judgments);
+    detail.append(judgments, sql, previews);
     cell.append(detail);
     row.append(cell);
     return row;

@@ -100,12 +100,9 @@ def build_demo() -> tuple[list[EvaluationCase], list[CaseScores]]:
         generated = _result([[1, 100], [2, 200], [3, 300]])
         target_sql = TARGET_SQL
         generated_sql = TARGET_SQL
-        question = (
-            f"Synthetic case {index + 1:03d} · {labels[scenario]}: "
-            "What is the total sales amount for each customer in January 2026?"
-        )
+        question = "What is the total sales amount for each customer in January 2026?"
         context = (
-            "Fabricated report fixture; neither SQL statement was executed. "
+            f"Fabricated report fixture: {labels[scenario]}. Neither SQL statement was executed. "
             "Customer IDs are unique, and each order belongs to a customer. "
             "No final display order is required unless the question states otherwise."
         )
@@ -191,10 +188,7 @@ GROUP BY customer_id"""
             sampled_evidence = []
             semantic_evidence = ["SUM(missing_amount) references an undefined column."]
         elif scenario == 8:
-            question = (
-                f"Synthetic case {index + 1:03d} · {labels[scenario]}: "
-                "Which 50 customers had the highest sales in January 2026?"
-            )
+            question = "Which 50 customers had the highest sales in January 2026?"
             target = _result([[number, 100] for number in range(1, 51)], total_rows=50)
             generated = _result([[number, 100] for number in range(2, 52)], total_rows=50)
             generated_sql = TARGET_SQL + "\nORDER BY total_sales DESC LIMIT 50"

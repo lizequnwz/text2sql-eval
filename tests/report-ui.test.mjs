@@ -96,6 +96,11 @@ test("case details retain independent previews and Escape restores keyboard focu
   assert.match(p.document.querySelector(".preview-note").textContent, /Row positions do not indicate matched records/);
   assert.equal(p.document.querySelectorAll(".sql-code").length, 2);
   assert.equal(p.document.querySelectorAll(".metric-detail").length, 3);
+  const sections = [...p.document.querySelectorAll(".case-detail > .detail-section h4")];
+  assert.equal(sections[0].textContent, "Metric decisions and evidence");
+  assert.equal(sections[1].textContent, "SQL comparison");
+  assert.equal(sections[2].textContent, "Execution previews");
+  assert.ok([...p.rows()[0].querySelectorAll(".status-cell")].every(cell => cell.dataset.label));
   p.document.dispatchEvent(new p.window.KeyboardEvent("keydown", {key: "Escape", bubbles: true}));
   assert.equal(p.document.querySelectorAll(".case-detail").length, 0);
   assert.equal(p.document.activeElement.dataset.caseIndex, "1");

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from html.parser import HTMLParser
+from importlib.resources import files
 
 import pytest
 from conftest import RecordingModel, decision
@@ -45,6 +46,19 @@ class ReportParser(HTMLParser):
 
 def score_cases(*cases, responder=None):
     return Evaluator(RecordingModel(responder)).evaluate_many(cases)
+
+
+def test_internal_template_is_distinct_from_a_finished_html_report(make_case):
+    assets = files("text2sql_eval").joinpath("assets")
+    assert assets.joinpath("report.html.template").is_file()
+    assert not assets.joinpath("report.html").is_file()
+    case = make_case()
+    html = render_html_report([case], score_cases(case))
+    assert "__REPORT_CSS__" not in html
+    assert "__REPORT_JS__" not in html
+    assert "__REPORT_DATA__" not in html
+    assert ":root {" in html
+    assert "document.createElement" in html
 
 
 def test_report_joins_by_id_and_preserves_score_order(make_case):

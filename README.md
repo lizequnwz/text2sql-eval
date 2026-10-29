@@ -1,5 +1,7 @@
 # text2sql-eval
 
+**Report preview:** download [the finished HTML demo](examples/report-demo.html) and open it in your browser. It includes all styles, interactions, and synthetic sample data. Internal `.html.template` files are source templates, not viewable reports.
+
 Three separate scores for text-to-SQL predictions, using results your application has already executed:
 
 1. **Row Count Match Rate** — compare complete result row counts.

@@ -23,7 +23,7 @@
         <div>
           <p class="eyebrow">EVALUATION REPORT</p>
           <h1 id="report-title">Text-to-SQL evaluation report</h1>
-          <p class="report-subtitle">A clear view of results, evidence, and SQL meaning.</p>
+          <p class="report-subtitle">Compare SQL, inspect result samples, and read judge explanations.</p>
         </div>
         <div class="run-meta" id="run-meta"></div>
       </div>

@@ -1,6 +1,6 @@
 [project]
 name = "text2sql-eval"
-version = "0.2.0"
+version = "0.2.1"
 description = "Three transparent scores for text-to-SQL: row counts, sampled consistency, and SQL semantics."
 readme = "README.md"
 requires-python = ">=3.11"

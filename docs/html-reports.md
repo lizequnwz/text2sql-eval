@@ -1,5 +1,11 @@
 # HTML reports
 
+## Open a finished report
+
+Download [the ready-to-open synthetic demo](../examples/report-demo.html) and open the downloaded HTML file in a browser. The evaluation command produces the same complete document for your own results.
+
+The files in `src/text2sql_eval/assets/` are internal rendering resources. In particular, `report.html.template` contains placeholders; open a generated HTML report rather than the template. Finished reports embed their CSS, JavaScript, and data in one file.
+
 The HTML report is an offline view of existing evaluation evidence. It helps you find cases to inspect; it does not rescore SQL, run queries, or call a model.
 
 ## Create a report during evaluation

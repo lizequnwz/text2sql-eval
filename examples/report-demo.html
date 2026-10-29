@@ -1,0 +1,834 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Text-to-SQL evaluation report</title>
+  <style>:root {
+  color-scheme: light;
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --surface-soft: #f8fafc;
+  --surface-hover: #eff4fc;
+  --text: #17243b;
+  --muted: #56657a;
+  --border: #dce3ee;
+  --control-border: #7d8ba1;
+  --accent: #234fb8;
+  --accent-soft: #edf2ff;
+  --accent-text: #2548a0;
+  --pass: #116c58;
+  --pass-bg: #e7f4ee;
+  --fail: #ac303f;
+  --fail-bg: #fcecf0;
+  --review: #8d5707;
+  --review-bg: #fff3d7;
+  --error: #55566f;
+  --error-bg: #efedf6;
+  --focus: #315fd2;
+  --shadow: 0 2px 4px rgb(22 39 70 / 3%), 0 12px 30px rgb(22 39 70 / 3%);
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101722;
+  --surface: #182230;
+  --surface-soft: #141d29;
+  --surface-hover: #202e43;
+  --text: #e4ebf5;
+  --muted: #aab7cb;
+  --border: #344256;
+  --control-border: #74849b;
+  --accent: #97b6ff;
+  --accent-soft: #213253;
+  --accent-text: #c0d1ff;
+  --pass: #9cddc6;
+  --pass-bg: #163c33;
+  --fail: #ffb0ba;
+  --fail-bg: #4c2632;
+  --review: #f7d18b;
+  --review-bg: #473719;
+  --error: #d0c8ed;
+  --error-bg: #352f49;
+  --focus: #adc6ff;
+  --shadow: none;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); }
+button, input, select { font: inherit; }
+button, select, input[type="checkbox"] { cursor: pointer; }
+button { touch-action: manipulation; }
+button, input, select { -webkit-tap-highlight-color: transparent; }
+button, a, input, select, [tabindex] { scroll-margin: 24px; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+button { transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease; }
+button:disabled { cursor: not-allowed; opacity: .45; }
+a { color: var(--accent); }
+h1, h2, h3, h4, h5, p { margin: 0; }
+h1 { font-size: clamp(1.7rem, 3.7vw, 2.45rem); line-height: 1.18; letter-spacing: -.04em; font-weight: 680; text-wrap: balance; }
+h2 { font-size: 1.2rem; letter-spacing: -.02em; line-height: 1.3; font-weight: 680; }
+h3 { font-size: 1.2rem; line-height: 1.35; letter-spacing: -.02em; }
+h4 { font-size: 1.02rem; line-height: 1.4; font-weight: 680; }
+h5 { font-size: .94rem; font-weight: 650; }
+pre, code, .mono { font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+.page-shell { width: min(100% - 64px, 1376px); margin: 0 auto; padding-bottom: 40px; }
+.report-header { padding: 26px 0 30px; }
+.brand-line, .report-heading, .section-heading, .explorer-heading, .table-intro, .pagination, .detail-header, .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.brand { display: flex; align-items: center; gap: 11px; font-size: .93rem; font-weight: 660; }
+.brand-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: var(--surface); font-size: 24px; line-height: 1; }
+.brand-mark svg { width: 22px; height: 22px; }
+.brand-divider { margin: 0 11px; color: var(--border); font-weight: 400; }
+.brand-muted { font-weight: 480; color: var(--muted); }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.report-heading { align-items: end; margin-top: 33px; }
+.eyebrow { font-size: .75rem; letter-spacing: .13em; font-weight: 740; color: var(--accent); margin-bottom: 9px; }
+.report-subtitle { margin-top: 12px; color: var(--muted); font-size: .98rem; }
+.run-meta { text-align: right; color: var(--muted); font-size: .77rem; line-height: 1.8; flex: 0 0 auto; }
+.run-meta strong { color: var(--text); font-weight: 620; }
+.section-heading { margin-bottom: 16px; }
+.count-label { color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+.metric-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.metric-card { min-width: 0; padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 13px; box-shadow: var(--shadow); }
+.metric-topline { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+.metric-index { color: var(--accent); background: var(--accent-soft); width: 25px; height: 25px; display: grid; place-items: center; font-size: .75rem; font-weight: 740; border-radius: 6px; }
+.metric-name { font-size: 1rem; font-weight: 650; line-height: 1.4; }
+.metric-rate-label { color: var(--muted); font-size: .8125rem; margin-bottom: 5px; }
+.metric-number { font-size: 2.65rem; font-weight: 680; letter-spacing: -.045em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.metric-count { margin-top: 9px; color: var(--muted); font-size: .875rem; font-variant-numeric: tabular-nums; }
+.metric-description { margin-top: 16px; min-height: 44px; color: var(--muted); font-size: .875rem; line-height: 1.6; }
+.status-bar { display: flex; height: 6px; margin: 17px 0 12px; border-radius: 10px; overflow: hidden; background: var(--border); }
+.status-bar span { height: 100%; }
+.status-bar .segment-PASS { background: var(--pass); }
+.status-bar .segment-FAIL { background: var(--fail); }
+.status-bar .segment-REVIEW { background: var(--review); }
+.status-bar .segment-ERROR { background: var(--error); }
+.metric-legend { display: flex; flex-wrap: wrap; gap: 7px 12px; font-size: .75rem; color: var(--muted); }
+.legend-item { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.legend-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.legend-dot.status-PASS { background: var(--pass); }
+.legend-dot.status-FAIL { background: var(--fail); }
+.legend-dot.status-REVIEW { background: var(--review); }
+.legend-dot.status-ERROR { background: var(--error); }
+.coverage-line { border-top: 1px solid var(--border); margin-top: 15px; padding-top: 11px; display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: .75rem; }
+.coverage-line strong { color: var(--text); font-weight: 650; }
+.reading-note { display: flex; gap: 10px; align-items: flex-start; margin-top: 15px; color: var(--muted); font-size: .79rem; line-height: 1.6; }
+.note-mark { flex: 0 0 auto; width: 16px; height: 16px; display: grid; place-items: center; border: 1px solid var(--muted); border-radius: 50%; font-family: Georgia, serif; font-size: .75rem; line-height: 1; margin-top: 2px; }
+.explorer { margin-top: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: 13px; box-shadow: var(--shadow); overflow: clip; }
+.explorer-heading { padding: 23px 24px 19px; }
+.explorer-heading .eyebrow { margin-bottom: 7px; }
+.section-description { color: var(--muted); font-size: .81rem; max-width: 370px; text-align: right; }
+.filter-bar { display: grid; grid-template-columns: minmax(230px, 1fr) 180px 145px auto; gap: 12px; padding: 0 24px 21px; align-items: end; }
+.field { min-width: 0; }
+.field label { display: block; margin-bottom: 7px; color: var(--muted); font-size: .875rem; font-weight: 620; }
+.field input, .field select { width: 100%; height: 44px; background: var(--surface); border: 1px solid var(--control-border); border-radius: 7px; padding: 9px 11px; color: var(--text); font-size: .9375rem; }
+.field input::placeholder { color: var(--muted); opacity: 1; }
+.filter-actions { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.checkbox-label { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: .77rem; white-space: nowrap; }
+.checkbox-label input { margin: 0; width: 17px; height: 17px; accent-color: var(--accent); }
+.button { min-height: 44px; border: 1px solid transparent; border-radius: 7px; padding: 9px 13px; font-size: .875rem; font-weight: 610; color: var(--text); background: transparent; }
+.button-secondary { border-color: var(--control-border); background: var(--surface); }
+.button-secondary:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--muted); }
+.button-quiet { color: var(--accent); }
+.button-quiet:hover:not(:disabled) { background: var(--accent-soft); }
+.table-intro { border-top: 1px solid var(--border); padding: 12px 24px; font-size: .76rem; color: var(--muted); background: var(--surface-soft); }
+#result-count { color: var(--text); font-weight: 580; font-variant-numeric: tabular-nums; }
+.table-hint { font-size: .75rem; }
+.table-scroll { overflow: auto; max-width: 100%; }
+.table-scroll:focus-visible, .sql-code:focus-visible { outline-offset: -3px; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+.case-table { table-layout: fixed; min-width: 810px; }
+.case-table th:nth-child(1) { width: 21%; }
+.case-table th:nth-child(2) { width: 40%; }
+.case-table th:nth-child(n+3) { width: 13%; }
+.case-table thead { background: var(--surface-soft); }
+.case-table th { padding: 0 14px; border-bottom: 1px solid var(--border); }
+.case-table th:first-child { padding-left: 24px; }
+.case-table th:last-child { padding-right: 24px; }
+.sort-button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 46px; padding: 10px 0; background: none; color: var(--muted); border: 0; font-size: .75rem; font-weight: 650; text-align: left; }
+.sort-symbol { font-size: .87rem; color: var(--muted); opacity: .6; }
+[aria-sort="ascending"] .sort-button, [aria-sort="descending"] .sort-button { color: var(--accent); }
+[aria-sort="ascending"] .sort-symbol, [aria-sort="descending"] .sort-symbol { opacity: 1; }
+.case-row > td { border-bottom: 1px solid var(--border); padding: 18px 14px; font-size: .9375rem; vertical-align: top; }
+.case-row > td:first-child { padding-left: 24px; }
+.case-row > td:last-child { padding-right: 24px; }
+.case-row:hover { background: var(--surface-hover); }
+.case-row.is-expanded { background: var(--accent-soft); }
+.case-opener { display: flex; width: 100%; align-items: flex-start; gap: 8px; text-align: left; padding: 0; min-height: 44px; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 620; overflow-wrap: anywhere; }
+.chevron { flex: 0 0 auto; width: 14px; margin-top: 3px; font-weight: 400; color: var(--muted); }
+.case-question { overflow-wrap: anywhere; line-height: 1.55; }
+.case-id-text { min-width: 0; }
+.status { display: inline-flex; align-items: center; gap: 5px; border-radius: 5px; padding: 4px 7px; font-size: .75rem; line-height: 1.5; font-weight: 730; letter-spacing: .025em; white-space: nowrap; }
+.status .status-icon { font-size: .67rem; }
+.status-PASS { color: var(--pass); background: var(--pass-bg); }
+.status-FAIL { color: var(--fail); background: var(--fail-bg); }
+.status-REVIEW { color: var(--review); background: var(--review-bg); }
+.status-ERROR { color: var(--error); background: var(--error-bg); }
+.detail-row > td { padding: 0; border-bottom: 1px solid var(--border); }
+.case-detail { padding: 25px 24px 29px; border-top: 2px solid var(--accent); background: var(--surface-soft); }
+.detail-header { align-items: flex-start; margin-bottom: 13px; }
+.detail-header h3 { overflow-wrap: anywhere; }
+.detail-question { font-size: 1.05rem; line-height: 1.6; max-width: 85ch; overflow-wrap: anywhere; }
+.detail-header .button { flex: 0 0 auto; }
+.detail-facts { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.plain-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 3px 8px; color: var(--muted); font-size: .75rem; }
+.context-block { margin-top: 14px; color: var(--muted); font-size: .9375rem; }
+summary { cursor: pointer; min-height: 44px; display: list-item; padding: 11px 0; font-size: .78rem; font-weight: 610; color: var(--accent); }
+.context-block p { margin-top: 5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.detail-section { margin-top: 25px; }
+.detail-section > h4 { margin-bottom: 13px; }
+.compare-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.compare-panel { min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+.panel-header { padding: 12px 15px; border-bottom: 1px solid var(--border); }
+.panel-header h5 { font-size: .77rem; color: var(--muted); }
+.panel-marker { font-size: .75rem; font-weight: 630; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.sql-code { margin: 0; padding: 20px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .875rem; line-height: 1.75; tab-size: 2; color: var(--text); }
+.preview-note { margin: -5px 0 13px; font-size: .76rem; color: var(--muted); }
+.preview-stats { display: flex; flex-wrap: wrap; gap: 5px 12px; padding: 11px 15px; color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--border); }
+.preview-stats strong { color: var(--text); font-weight: 650; }
+.preview-flag { color: var(--review); font-weight: 650; }
+.preview-table { width: max-content; min-width: 100%; font-size: .75rem; }
+.preview-table th, .preview-table td { padding: 10px 13px; border-bottom: 1px solid var(--border); vertical-align: top; max-width: 320px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.preview-table th { background: var(--surface-soft); font-size: .75rem; font-weight: 650; }
+.preview-table td { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: .75rem; }
+.preview-table tbody tr:last-child td { border-bottom: 0; }
+.value-null { color: var(--muted); font-style: italic; }
+.empty-preview { padding: 19px 16px; font-size: .79rem; color: var(--muted); }
+.execution-error { padding: 16px; font-size: .79rem; }
+.execution-error p { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 10px; }
+.metric-detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
+.metric-detail { min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 16px; }
+.metric-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 9px; margin-bottom: 13px; }
+.metric-detail-head h5 { font-size: .8rem; line-height: 1.5; }
+.reason-text { font-size: .9375rem; line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
+.evidence-label { margin-top: 16px; font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+.evidence-list { padding-left: 17px; margin: 7px 0 0; color: var(--muted); font-size: .875rem; line-height: 1.65; }
+.evidence-list li { overflow-wrap: anywhere; margin-bottom: 5px; white-space: pre-wrap; }
+.decision-note { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); font-size: .75rem; }
+.decision-note.is-review { color: var(--review); }
+.metadata { margin-top: 10px; }
+.metadata summary { font-size: .75rem; }
+.metadata dl { margin: 0; font-size: .75rem; }
+.metadata dt { color: var(--muted); margin-top: 10px; }
+.metadata dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.metadata .hash { font-family: ui-monospace, Consolas, monospace; font-size: .75rem; }
+.pagination { padding: 16px 24px; font-size: .76rem; }
+.pagination > div { display: flex; gap: 8px; }
+.muted { color: var(--muted); }
+.empty-state { padding: 48px 24px; text-align: center; }
+.empty-state strong { display: block; margin-bottom: 7px; font-size: .95rem; }
+.empty-state p { color: var(--muted); font-size: .81rem; }
+.report-footer { margin-top: 24px; color: var(--muted); font-size: .75rem; line-height: 1.7; max-width: 105ch; }
+.report-footer p + p { margin-top: 5px; }
+.report-footer strong { color: var(--text); font-weight: 620; }
+.print-note { display: none; }
+.sr-only, .skip-link:not(:focus) { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.skip-link:focus { position: fixed; z-index: 10; top: 12px; left: 12px; background: var(--surface); color: var(--accent); padding: 12px; border: 1px solid var(--border); border-radius: 7px; }
+
+@media (max-width: 1150px) {
+  .filter-bar { grid-template-columns: minmax(200px, 1fr) 180px 145px; }
+  .filter-actions { grid-column: 1 / -1; justify-content: space-between; }
+  .metric-card { padding: 19px; }
+  .metric-detail-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 800px) {
+  .page-shell { width: min(100% - 32px, 1376px); }
+  .report-heading { display: block; }
+  .run-meta { text-align: left; margin-top: 18px; display: flex; flex-wrap: wrap; gap: 0 15px; }
+  .metric-cards { grid-template-columns: 1fr; gap: 12px; }
+  .metric-card { display: grid; grid-template-columns: 1fr auto; gap: 0 18px; }
+  .metric-topline { grid-column: 1; margin-bottom: 10px; }
+  .metric-rate-label { grid-column: 1; }
+  .metric-number { grid-column: 2; grid-row: 1 / 4; align-self: center; text-align: right; font-size: 2.2rem; }
+  .metric-count { grid-column: 1; margin-top: 0; }
+  .metric-description { min-height: 0; grid-column: 1 / -1; }
+  .status-bar, .metric-legend, .coverage-line { grid-column: 1 / -1; }
+  .explorer-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .section-description { text-align: left; max-width: none; }
+  .filter-bar { grid-template-columns: 1fr 1fr; }
+  .search-field { grid-column: 1 / -1; }
+  .compare-grid { grid-template-columns: 1fr; }
+  .case-table { display: block; min-width: 0; }
+  .case-table > thead { display: block; padding: 12px 16px; }
+  .case-table > thead > tr { display: flex; flex-wrap: wrap; gap: 8px; }
+  .case-table thead th:nth-child(n) { width: auto; padding: 0; border: 0; }
+  .case-table .sort-button { min-height: 44px; padding: 8px 10px; border: 1px solid var(--control-border); border-radius: 6px; background: var(--surface); }
+  .case-table > tbody { display: block; }
+  .case-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--border); }
+  .case-row > td { min-width: 0; padding: 12px 16px; border-bottom: 0; }
+  .case-row > td:first-child { grid-column: 1 / -1; padding: 18px 16px 0; }
+  .case-row > td:nth-child(2) { grid-column: 1 / -1; padding: 4px 16px 12px; }
+  .case-row > td:last-child { padding-right: 16px; }
+  .case-row .status-cell::before { content: attr(data-label); display: block; color: var(--muted); font-size: .75rem; line-height: 1.4; min-height: 34px; margin-bottom: 6px; }
+  .detail-row, .detail-row > td { display: block; width: 100%; }
+  .case-detail { width: 100%; max-width: 100%; }
+  .table-hint { display: none; }
+}
+@media (max-width: 480px) {
+  .page-shell { width: calc(100% - 24px); }
+  .report-header { padding-top: 18px; }
+  .brand-line { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .header-actions { width: 100%; }
+  .header-actions .button { flex: 1; }
+  .report-heading { margin-top: 25px; }
+  .report-subtitle { font-size: .93rem; }
+  .explorer { margin-top: 25px; }
+  .explorer-heading, .filter-bar, .table-intro, .pagination { padding-left: 16px; padding-right: 16px; }
+  .field input, .field select { font-size: 16px; }
+  .case-question, .reason-text, .context-block, .empty-preview, .execution-error { font-size: 1rem; }
+  .detail-question { font-size: 1.05rem; }
+  .preview-note, .section-description, .reading-note { font-size: .94rem; }
+  .sql-code { font-size: .875rem; }
+  .preview-table th, .preview-table td { font-size: .8125rem; }
+  .field label { font-size: .875rem; }
+  .filter-actions { flex-wrap: wrap; gap: 5px; }
+  .checkbox-label { font-size: .8rem; }
+  .case-detail { padding: 20px 16px; }
+  .detail-header { flex-direction: column; gap: 8px; }
+  .pagination { gap: 10px; flex-wrap: wrap; }
+  .pagination > div { margin-left: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+@media print {
+  :root, [data-theme="dark"] { color-scheme: light; --bg: white; --surface: white; --surface-soft: #f5f6f8; --surface-hover: white; --text: #17243b; --muted: #4b596d; --border: #cdd4df; --control-border: #7d8ba1; --accent: #234fb8; --accent-soft: #edf2ff; --accent-text: #2548a0; --pass: #116c58; --pass-bg: #e7f4ee; --fail: #ac303f; --fail-bg: #fcecf0; --review: #8d5707; --review-bg: #fff3d7; --error: #55566f; --error-bg: #efedf6; --shadow: none; }
+  body { font-size: 11px; }
+  .page-shell { width: 100%; padding: 0; }
+  .header-actions, .filter-bar, .pagination, .detail-close, .skip-link, .sort-symbol { display: none; }
+  .report-header { padding-top: 0; }
+  .metric-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .metric-card { display: block; padding: 12px; break-inside: avoid; }
+  .metric-number { text-align: left; font-size: 2rem; }
+  .metric-description { min-height: 0; }
+  .case-table { min-width: 0; }
+  .case-table-scroll, .table-scroll { overflow: visible; }
+  .case-row { break-inside: avoid; }
+  .case-detail { padding: 16px 10px; }
+  .compare-grid, .metric-detail-grid { display: block; }
+  .compare-panel, .metric-detail { margin-top: 12px; }
+  .preview-table { width: 100%; table-layout: fixed; }
+  .preview-table th, .preview-table td { max-width: none; padding: 6px; font-size: .75rem; }
+  .print-note { display: block; }
+  .explorer { overflow: visible; }
+  .status-bar { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+  <a class="skip-link" href="#case-explorer">Skip to evaluation cases</a>
+  <div class="page-shell">
+    <header class="report-header">
+      <div class="brand-line">
+        <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M5 6h14M5 12h10M5 18h14"/><path d="m17 9 3 3-3 3"/></svg></span><span>Text2SQL<span class="brand-divider">/</span><span class="brand-muted">Evaluation</span></span></div>
+        <div class="header-actions">
+          <button id="theme-toggle" class="button button-secondary" type="button">Dark theme</button>
+          <button id="print-report" class="button button-secondary" type="button">Print current view</button>
+        </div>
+      </div>
+      <div class="report-heading">
+        <div>
+          <p class="eyebrow">EVALUATION REPORT</p>
+          <h1 id="report-title">Text-to-SQL evaluation report</h1>
+          <p class="report-subtitle">Compare SQL, inspect result samples, and read judge explanations.</p>
+        </div>
+        <div class="run-meta" id="run-meta"></div>
+      </div>
+    </header>
+
+    <main>
+      <section class="overview" aria-labelledby="overview-heading">
+        <div class="section-heading"><h2 id="overview-heading">Evaluation overview</h2><span id="total-cases" class="count-label"></span></div>
+        <div id="metric-cards" class="metric-cards"></div>
+        <div class="reading-note"><span class="note-mark" aria-hidden="true">i</span><p>These are three separate measures. Sampled consistency does not establish full-result equality. Review cases and errors stay in the denominator.</p></div>
+      </section>
+
+      <section id="case-explorer" class="explorer" aria-labelledby="cases-heading" tabindex="-1">
+        <div class="explorer-heading">
+          <div><p class="eyebrow">INSPECT THE EVIDENCE</p><h2 id="cases-heading">Evaluation cases</h2></div>
+          <p class="section-description">Open a case to review its SQL, previews, and judge explanations.</p>
+        </div>
+        <div class="filter-bar">
+          <div class="field search-field"><label for="case-search">Search cases</label><input id="case-search" type="search" placeholder="Question, case ID, SQL, or reason" autocomplete="off" spellcheck="false"></div>
+          <div class="field"><label for="metric-filter">Metric</label><select id="metric-filter"><option value="all">All metrics</option><option value="row_count_match">Row count match</option><option value="sampled_result_consistency">Sampled consistency</option><option value="sql_semantic">SQL semantics</option></select></div>
+          <div class="field"><label for="status-filter">Status</label><select id="status-filter"><option value="all">All statuses</option><option value="PASS">Pass</option><option value="FAIL">Fail</option><option value="REVIEW">Review</option><option value="ERROR">Error</option></select></div>
+          <div class="filter-actions"><label class="checkbox-label" for="disagreement-filter"><input id="disagreement-filter" type="checkbox"><span>Judge disagreement</span></label><button id="clear-filters" class="button button-quiet" type="button">Reset view</button></div>
+        </div>
+        <div class="table-intro"><p id="result-count" role="status" aria-live="polite" aria-atomic="true"></p><p class="table-hint">Overview totals remain unchanged by filters.</p></div>
+        <div class="table-scroll case-table-scroll" tabindex="0" role="region" aria-label="Evaluation cases table, scroll horizontally if needed">
+          <table class="case-table" id="case-table">
+            <caption class="sr-only">Evaluation cases and the normalized status of each metric. Column heading buttons change sort order.</caption>
+            <thead><tr>
+              <th scope="col" aria-sort="none"><button class="sort-button" type="button" data-sort="case_id">Case ID<span class="sort-symbol" aria-hidden="true">↕</span></button></th>
+              <th scope="col" aria-sort="none"><button class="sort-button" type="button" data-sort="question">Question<span class="sort-symbol" aria-hidden="true">↕</span></button></th>
+              <th scope="col" aria-sort="none"><button class="sort-button" type="button" data-sort="row_count_match">Row count<span class="sort-symbol" aria-hidden="true">↕</span></button></th>
+              <th scope="col" aria-sort="none"><button class="sort-button" type="button" data-sort="sampled_result_consistency">Sampled result<span class="sort-symbol" aria-hidden="true">↕</span></button></th>
+              <th scope="col" aria-sort="none"><button class="sort-button" type="button" data-sort="sql_semantic">SQL semantics<span class="sort-symbol" aria-hidden="true">↕</span></button></th>
+            </tr></thead>
+            <tbody id="case-table-body"></tbody>
+          </table>
+        </div>
+        <div class="pagination"><span id="page-label" class="muted"></span><div><button id="prev-page" class="button button-secondary" type="button">Previous</button><button id="next-page" class="button button-secondary" type="button">Next</button></div></div>
+      </section>
+      <noscript><div class="reading-note">JavaScript is required to explore this self-contained report. Enable JavaScript and reopen the file. No network connection is required.</div></noscript>
+    </main>
+    <footer class="report-footer"><p><strong>Read-only review.</strong> A judge assessment is not a proof of SQL correctness. Result previews retain their original order and are not aligned record by record.</p><p>Positive means “SQL flagged as wrong.” A false positive rejects correct SQL; a false negative accepts incorrect SQL.</p><p class="print-note">Printed view includes the overview and the current case list, with any open case details.</p></footer>
+  </div>
+  <script type="application/json" id="report-data">{"title":"Synthetic demo \u00b7 Text-to-SQL evaluation","package_version":"0.2.1","rendered_at":"2026-10-29T11:06:28.249886+00:00","summary":{"row_count_match":{"cases":36,"passed":28,"failed":4,"review":0,"errors":4,"pass_rate":0.7777777777777778,"decision_coverage":0.8888888888888888},"sampled_result_consistency":{"cases":36,"passed":20,"failed":8,"review":0,"errors":8,"pass_rate":0.5555555555555556,"decision_coverage":0.7777777777777778},"sql_semantic":{"cases":36,"passed":16,"failed":16,"review":4,"errors":0,"pass_rate":0.4444444444444444,"decision_coverage":0.8888888888888888}},"cases":[{"case_id":"synthetic-001","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Matching customer totals. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The supplied customer totals agree.","judgment":{"verdict":"PASS","reason":"Synthetic example: The supplied customer totals agree.","needs_review":false,"evidence":["customer_id 1 has total_sales 100 in both supplied previews."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","needs_review":false,"evidence":["Both SQL statements filter January and group by customer_id."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-002","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT o.customer_id, c.customer_name, SUM(o.amount) AS total_sales\nFROM orders o\nJOIN customers c ON c.customer_id = o.customer_id\nWHERE o.order_date \u003e= DATE '2026-01-01'\n  AND o.order_date \u003c DATE '2026-02-01'\nGROUP BY o.customer_id, c.customer_name\nORDER BY total_sales DESC","dialect":"postgresql","context":"Fabricated report fixture: Supplementary customer names. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. Every order has a matching customer; customer_name is supplementary.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","customer_name","total_sales"],"rows":[[3,"Cleo",300],[2,"Bob",200],[1,"Ada",100]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["3","Cleo","300"],["2","Bob","200"],["1","Ada","100"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The extra name column and reversed display order preserve totals.","judgment":{"verdict":"PASS","reason":"Synthetic example: The extra name column and reversed display order preserve totals.","needs_review":false,"evidence":["customer_id 1 still has total_sales 100; Ada is extra context."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The stated unique customer join preserves aggregation grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The stated unique customer join preserves aggregation grain.","needs_review":false,"evidence":["The January filter remains; the final ORDER BY is incidental."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-003","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Truncated output. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,10],[2,20],[3,30],[4,40],[5,50],[6,60],[7,70],[8,80],[9,90],[10,100],[11,110],[12,120],[13,130],[14,140],[15,150],[16,160],[17,170],[18,180],[19,190],[20,200],[21,210],[22,220],[23,230],[24,240],[25,250],[26,260],[27,270],[28,280],[29,290],[30,300],[31,310],[32,320],[33,330],[34,340],[35,350],[36,360],[37,370],[38,380],[39,390],[40,400],[41,410],[42,420],[43,430],[44,440],[45,450],[46,460],[47,470],[48,480],[49,490],[50,500]],"total_rows":1200,"provided_rows":80,"shown_rows":50,"truncated":true,"execution_error":null,"display_rows":[["1","10"],["2","20"],["3","30"],["4","40"],["5","50"],["6","60"],["7","70"],["8","80"],["9","90"],["10","100"],["11","110"],["12","120"],["13","130"],["14","140"],["15","150"],["16","160"],["17","170"],["18","180"],["19","190"],["20","200"],["21","210"],["22","220"],["23","230"],["24","240"],["25","250"],["26","260"],["27","270"],["28","280"],["29","290"],["30","300"],["31","310"],["32","320"],["33","330"],["34","340"],["35","350"],["36","360"],["37","370"],["38","380"],["39","390"],["40","400"],["41","410"],["42","420"],["43","430"],["44","440"],["45","450"],["46","460"],["47","470"],["48","480"],["49","490"],["50","500"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,10],[2,20],[3,30],[4,40],[5,50],[6,60],[7,70],[8,80],[9,90],[10,100],[11,110],[12,120],[13,130],[14,140],[15,150],[16,160],[17,170],[18,180],[19,190],[20,200],[21,210],[22,220],[23,230],[24,240],[25,250],[26,260],[27,270],[28,280],[29,290],[30,300],[31,310],[32,320],[33,330],[34,340],[35,350],[36,360],[37,370],[38,380],[39,390],[40,400],[41,410],[42,420],[43,430],[44,440],[45,450],[46,460],[47,470],[48,480],[49,490],[50,500]],"total_rows":1200,"provided_rows":80,"shown_rows":50,"truncated":true,"execution_error":null,"display_rows":[["1","10"],["2","20"],["3","30"],["4","40"],["5","50"],["6","60"],["7","70"],["8","80"],["9","90"],["10","100"],["11","110"],["12","120"],["13","130"],["14","140"],["15","150"],["16","160"],["17","170"],["18","180"],["19","190"],["20","200"],["21","210"],["22","220"],["23","230"],["24","240"],["25","250"],["26","260"],["27","270"],["28","280"],["29","290"],["30","300"],["31","310"],["32","320"],["33","330"],["34","340"],["35","350"],["36","360"],["37","370"],["38","380"],["39","390"],["40","400"],["41","410"],["42","420"],["43","430"],["44","440"],["45","450"],["46","460"],["47","470"],["48","480"],["49","490"],["50","500"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=1200, generated=1200.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The first 50 rows agree; unseen rows remain outside this metric.","judgment":{"verdict":"PASS","reason":"Synthetic example: The first 50 rows agree; unseen rows remain outside this metric.","needs_review":false,"evidence":["1,200 total rows; at most 50 are embedded per query."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","needs_review":false,"evidence":["Both SQL statements filter January and group by customer_id."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-004","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Same preview, missing date filter. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. The fabricated snapshot contains only January orders.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The fabricated preview agrees on this snapshot.","judgment":{"verdict":"PASS","reason":"Synthetic example: The fabricated preview agrees on this snapshot.","needs_review":false,"evidence":["customer_id 1 has total_sales 100 in both supplied previews."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: Generated SQL omits the date range required by the question.","judgment":{"verdict":"FAIL","reason":"Synthetic example: Generated SQL omits the date range required by the question.","needs_review":false,"evidence":["The generated SQL has no WHERE clause for January 2026."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-005","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount + 1) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Incorrect amount. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,999],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","999"],["3","300"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"FAIL","reason":"Synthetic example: The same customer's observed amount differs.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The same customer's observed amount differs.","needs_review":false,"evidence":["customer_id 2: target 200; generated 999."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: Adding one to every order changes the requested total.","judgment":{"verdict":"FAIL","reason":"Synthetic example: Adding one to every order changes the requested total.","needs_review":false,"evidence":["SUM(amount + 1) differs from SUM(amount)."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-006","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id\nHAVING SUM(amount) \u003c 300","dialect":"postgresql","context":"Fabricated report fixture: Missing customer. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200]],"total_rows":2,"provided_rows":2,"shown_rows":2,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"FAIL","reason":"Complete row counts: target=3, generated=2.","judgment":null,"metadata":null,"error_type":null,"score":0},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"FAIL","reason":"Synthetic example: The complete three-row target includes customer 3, which is missing.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The complete three-row target includes customer 3, which is missing.","needs_review":false,"evidence":["Target count 3; generated count 2; customer 3 is absent."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: The extra HAVING condition excludes a requested customer.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The extra HAVING condition excludes a requested customer.","needs_review":false,"evidence":["HAVING SUM(amount) \u003c 300 is not requested."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-007","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Empty result. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. The fabricated input has no January orders.","target_result":{"columns":["customer_id","total_sales"],"rows":[],"total_rows":0,"provided_rows":0,"shown_rows":0,"truncated":false,"execution_error":null,"display_rows":[]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[],"total_rows":0,"provided_rows":0,"shown_rows":0,"truncated":false,"execution_error":null,"display_rows":[]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=0, generated=0.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: Both complete outputs are empty; no sample contradiction is shown.","judgment":{"verdict":"PASS","reason":"Synthetic example: Both complete outputs are empty; no sample contradiction is shown.","needs_review":false,"evidence":["Both total_rows values are 0, with no preview rows."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","needs_review":false,"evidence":["Both SQL statements filter January and group by customer_id."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-008","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(missing_amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Execution error. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. orders has amount; it has no missing_amount column.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":[],"rows":[],"total_rows":null,"provided_rows":0,"shown_rows":0,"truncated":false,"execution_error":"Synthetic execution failure: missing_amount is not a column.","display_rows":[]},"scores":{"row_count_match":{"name":"row_count_match","status":"ERROR","reason":"Generated query did not execute successfully.","judgment":null,"metadata":null,"error_type":"InputExecutionError","score":null},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"ERROR","reason":"Synthetic example: The fabricated generated execution failed, so no result is compared.","judgment":null,"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":"SyntheticError","score":null},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: The generated query refers to a column absent from the stated schema.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The generated query refers to a column absent from the stated schema.","needs_review":false,"evidence":["SUM(missing_amount) references an undefined column."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-009","question":"Which 50 customers had the highest sales in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id\nORDER BY total_sales DESC LIMIT 50","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id\nORDER BY total_sales DESC LIMIT 50","dialect":"postgresql","context":"Fabricated report fixture: Judge error and uncertain ties. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,100],[3,100],[4,100],[5,100],[6,100],[7,100],[8,100],[9,100],[10,100],[11,100],[12,100],[13,100],[14,100],[15,100],[16,100],[17,100],[18,100],[19,100],[20,100],[21,100],[22,100],[23,100],[24,100],[25,100],[26,100],[27,100],[28,100],[29,100],[30,100],[31,100],[32,100],[33,100],[34,100],[35,100],[36,100],[37,100],[38,100],[39,100],[40,100],[41,100],[42,100],[43,100],[44,100],[45,100],[46,100],[47,100],[48,100],[49,100],[50,100]],"total_rows":50,"provided_rows":50,"shown_rows":50,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","100"],["3","100"],["4","100"],["5","100"],["6","100"],["7","100"],["8","100"],["9","100"],["10","100"],["11","100"],["12","100"],["13","100"],["14","100"],["15","100"],["16","100"],["17","100"],["18","100"],["19","100"],["20","100"],["21","100"],["22","100"],["23","100"],["24","100"],["25","100"],["26","100"],["27","100"],["28","100"],["29","100"],["30","100"],["31","100"],["32","100"],["33","100"],["34","100"],["35","100"],["36","100"],["37","100"],["38","100"],["39","100"],["40","100"],["41","100"],["42","100"],["43","100"],["44","100"],["45","100"],["46","100"],["47","100"],["48","100"],["49","100"],["50","100"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[2,100],[3,100],[4,100],[5,100],[6,100],[7,100],[8,100],[9,100],[10,100],[11,100],[12,100],[13,100],[14,100],[15,100],[16,100],[17,100],[18,100],[19,100],[20,100],[21,100],[22,100],[23,100],[24,100],[25,100],[26,100],[27,100],[28,100],[29,100],[30,100],[31,100],[32,100],[33,100],[34,100],[35,100],[36,100],[37,100],[38,100],[39,100],[40,100],[41,100],[42,100],[43,100],[44,100],[45,100],[46,100],[47,100],[48,100],[49,100],[50,100],[51,100]],"total_rows":50,"provided_rows":50,"shown_rows":50,"truncated":false,"execution_error":null,"display_rows":[["2","100"],["3","100"],["4","100"],["5","100"],["6","100"],["7","100"],["8","100"],["9","100"],["10","100"],["11","100"],["12","100"],["13","100"],["14","100"],["15","100"],["16","100"],["17","100"],["18","100"],["19","100"],["20","100"],["21","100"],["22","100"],["23","100"],["24","100"],["25","100"],["26","100"],["27","100"],["28","100"],["29","100"],["30","100"],["31","100"],["32","100"],["33","100"],["34","100"],["35","100"],["36","100"],["37","100"],["38","100"],["39","100"],["40","100"],["41","100"],["42","100"],["43","100"],["44","100"],["45","100"],["46","100"],["47","100"],["48","100"],["49","100"],["50","100"],["51","100"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=50, generated=50.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"ERROR","reason":"Synthetic example: A fabricated provider error prevented the sampled judgment.","judgment":null,"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":"SyntheticError","score":null},"sql_semantic":{"name":"sql_semantic","status":"REVIEW","reason":"Synthetic example: The question does not define how to choose boundary ties.","judgment":{"verdict":"PASS","reason":"Synthetic example: The question does not define how to choose boundary ties.","needs_review":true,"evidence":["ORDER BY total_sales DESC LIMIT 50 has no unique tie-break key."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":null}}},{"case_id":"synthetic-010","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Matching customer totals. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The supplied customer totals agree.","judgment":{"verdict":"PASS","reason":"Synthetic example: The supplied customer totals agree.","needs_review":false,"evidence":["customer_id 1 has total_sales 100 in both supplied previews."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","needs_review":false,"evidence":["Both SQL statements filter January and group by customer_id."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-011","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT o.customer_id, c.customer_name, SUM(o.amount) AS total_sales\nFROM orders o\nJOIN customers c ON c.customer_id = o.customer_id\nWHERE o.order_date \u003e= DATE '2026-01-01'\n  AND o.order_date \u003c DATE '2026-02-01'\nGROUP BY o.customer_id, c.customer_name\nORDER BY total_sales DESC","dialect":"postgresql","context":"Fabricated report fixture: Supplementary customer names. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. Every order has a matching customer; customer_name is supplementary.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","customer_name","total_sales"],"rows":[[3,"Cleo",300],[2,"Bob",200],[1,"Ada",100]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["3","Cleo","300"],["2","Bob","200"],["1","Ada","100"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The extra name column and reversed display order preserve totals.","judgment":{"verdict":"PASS","reason":"Synthetic example: The extra name column and reversed display order preserve totals.","needs_review":false,"evidence":["customer_id 1 still has total_sales 100; Ada is extra context."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The stated unique customer join preserves aggregation grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The stated unique customer join preserves aggregation grain.","needs_review":false,"evidence":["The January filter remains; the final ORDER BY is incidental."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-012","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Truncated output. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,10],[2,20],[3,30],[4,40],[5,50],[6,60],[7,70],[8,80],[9,90],[10,100],[11,110],[12,120],[13,130],[14,140],[15,150],[16,160],[17,170],[18,180],[19,190],[20,200],[21,210],[22,220],[23,230],[24,240],[25,250],[26,260],[27,270],[28,280],[29,290],[30,300],[31,310],[32,320],[33,330],[34,340],[35,350],[36,360],[37,370],[38,380],[39,390],[40,400],[41,410],[42,420],[43,430],[44,440],[45,450],[46,460],[47,470],[48,480],[49,490],[50,500]],"total_rows":1200,"provided_rows":80,"shown_rows":50,"truncated":true,"execution_error":null,"display_rows":[["1","10"],["2","20"],["3","30"],["4","40"],["5","50"],["6","60"],["7","70"],["8","80"],["9","90"],["10","100"],["11","110"],["12","120"],["13","130"],["14","140"],["15","150"],["16","160"],["17","170"],["18","180"],["19","190"],["20","200"],["21","210"],["22","220"],["23","230"],["24","240"],["25","250"],["26","260"],["27","270"],["28","280"],["29","290"],["30","300"],["31","310"],["32","320"],["33","330"],["34","340"],["35","350"],["36","360"],["37","370"],["38","380"],["39","390"],["40","400"],["41","410"],["42","420"],["43","430"],["44","440"],["45","450"],["46","460"],["47","470"],["48","480"],["49","490"],["50","500"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,10],[2,20],[3,30],[4,40],[5,50],[6,60],[7,70],[8,80],[9,90],[10,100],[11,110],[12,120],[13,130],[14,140],[15,150],[16,160],[17,170],[18,180],[19,190],[20,200],[21,210],[22,220],[23,230],[24,240],[25,250],[26,260],[27,270],[28,280],[29,290],[30,300],[31,310],[32,320],[33,330],[34,340],[35,350],[36,360],[37,370],[38,380],[39,390],[40,400],[41,410],[42,420],[43,430],[44,440],[45,450],[46,460],[47,470],[48,480],[49,490],[50,500]],"total_rows":1200,"provided_rows":80,"shown_rows":50,"truncated":true,"execution_error":null,"display_rows":[["1","10"],["2","20"],["3","30"],["4","40"],["5","50"],["6","60"],["7","70"],["8","80"],["9","90"],["10","100"],["11","110"],["12","120"],["13","130"],["14","140"],["15","150"],["16","160"],["17","170"],["18","180"],["19","190"],["20","200"],["21","210"],["22","220"],["23","230"],["24","240"],["25","250"],["26","260"],["27","270"],["28","280"],["29","290"],["30","300"],["31","310"],["32","320"],["33","330"],["34","340"],["35","350"],["36","360"],["37","370"],["38","380"],["39","390"],["40","400"],["41","410"],["42","420"],["43","430"],["44","440"],["45","450"],["46","460"],["47","470"],["48","480"],["49","490"],["50","500"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=1200, generated=1200.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The first 50 rows agree; unseen rows remain outside this metric.","judgment":{"verdict":"PASS","reason":"Synthetic example: The first 50 rows agree; unseen rows remain outside this metric.","needs_review":false,"evidence":["1,200 total rows; at most 50 are embedded per query."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","needs_review":false,"evidence":["Both SQL statements filter January and group by customer_id."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-013","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Same preview, missing date filter. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. The fabricated snapshot contains only January orders.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The fabricated preview agrees on this snapshot.","judgment":{"verdict":"PASS","reason":"Synthetic example: The fabricated preview agrees on this snapshot.","needs_review":false,"evidence":["customer_id 1 has total_sales 100 in both supplied previews."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: Generated SQL omits the date range required by the question.","judgment":{"verdict":"FAIL","reason":"Synthetic example: Generated SQL omits the date range required by the question.","needs_review":false,"evidence":["The generated SQL has no WHERE clause for January 2026."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-014","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount + 1) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Incorrect amount. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,999],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","999"],["3","300"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"FAIL","reason":"Synthetic example: The same customer's observed amount differs.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The same customer's observed amount differs.","needs_review":false,"evidence":["customer_id 2: target 200; generated 999."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: Adding one to every order changes the requested total.","judgment":{"verdict":"FAIL","reason":"Synthetic example: Adding one to every order changes the requested total.","needs_review":false,"evidence":["SUM(amount + 1) differs from SUM(amount)."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-015","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id\nHAVING SUM(amount) \u003c 300","dialect":"postgresql","context":"Fabricated report fixture: Missing customer. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200]],"total_rows":2,"provided_rows":2,"shown_rows":2,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"FAIL","reason":"Complete row counts: target=3, generated=2.","judgment":null,"metadata":null,"error_type":null,"score":0},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"FAIL","reason":"Synthetic example: The complete three-row target includes customer 3, which is missing.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The complete three-row target includes customer 3, which is missing.","needs_review":false,"evidence":["Target count 3; generated count 2; customer 3 is absent."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: The extra HAVING condition excludes a requested customer.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The extra HAVING condition excludes a requested customer.","needs_review":false,"evidence":["HAVING SUM(amount) \u003c 300 is not requested."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-016","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Empty result. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. The fabricated input has no January orders.","target_result":{"columns":["customer_id","total_sales"],"rows":[],"total_rows":0,"provided_rows":0,"shown_rows":0,"truncated":false,"execution_error":null,"display_rows":[]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[],"total_rows":0,"provided_rows":0,"shown_rows":0,"truncated":false,"execution_error":null,"display_rows":[]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=0, generated=0.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: Both complete outputs are empty; no sample contradiction is shown.","judgment":{"verdict":"PASS","reason":"Synthetic example: Both complete outputs are empty; no sample contradiction is shown.","needs_review":false,"evidence":["Both total_rows values are 0, with no preview rows."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","needs_review":false,"evidence":["Both SQL statements filter January and group by customer_id."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-017","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(missing_amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Execution error. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. orders has amount; it has no missing_amount column.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":[],"rows":[],"total_rows":null,"provided_rows":0,"shown_rows":0,"truncated":false,"execution_error":"Synthetic execution failure: missing_amount is not a column.","display_rows":[]},"scores":{"row_count_match":{"name":"row_count_match","status":"ERROR","reason":"Generated query did not execute successfully.","judgment":null,"metadata":null,"error_type":"InputExecutionError","score":null},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"ERROR","reason":"Synthetic example: The fabricated generated execution failed, so no result is compared.","judgment":null,"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":"SyntheticError","score":null},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: The generated query refers to a column absent from the stated schema.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The generated query refers to a column absent from the stated schema.","needs_review":false,"evidence":["SUM(missing_amount) references an undefined column."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-018","question":"Which 50 customers had the highest sales in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id\nORDER BY total_sales DESC LIMIT 50","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id\nORDER BY total_sales DESC LIMIT 50","dialect":"postgresql","context":"Fabricated report fixture: Judge error and uncertain ties. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,100],[3,100],[4,100],[5,100],[6,100],[7,100],[8,100],[9,100],[10,100],[11,100],[12,100],[13,100],[14,100],[15,100],[16,100],[17,100],[18,100],[19,100],[20,100],[21,100],[22,100],[23,100],[24,100],[25,100],[26,100],[27,100],[28,100],[29,100],[30,100],[31,100],[32,100],[33,100],[34,100],[35,100],[36,100],[37,100],[38,100],[39,100],[40,100],[41,100],[42,100],[43,100],[44,100],[45,100],[46,100],[47,100],[48,100],[49,100],[50,100]],"total_rows":50,"provided_rows":50,"shown_rows":50,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","100"],["3","100"],["4","100"],["5","100"],["6","100"],["7","100"],["8","100"],["9","100"],["10","100"],["11","100"],["12","100"],["13","100"],["14","100"],["15","100"],["16","100"],["17","100"],["18","100"],["19","100"],["20","100"],["21","100"],["22","100"],["23","100"],["24","100"],["25","100"],["26","100"],["27","100"],["28","100"],["29","100"],["30","100"],["31","100"],["32","100"],["33","100"],["34","100"],["35","100"],["36","100"],["37","100"],["38","100"],["39","100"],["40","100"],["41","100"],["42","100"],["43","100"],["44","100"],["45","100"],["46","100"],["47","100"],["48","100"],["49","100"],["50","100"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[2,100],[3,100],[4,100],[5,100],[6,100],[7,100],[8,100],[9,100],[10,100],[11,100],[12,100],[13,100],[14,100],[15,100],[16,100],[17,100],[18,100],[19,100],[20,100],[21,100],[22,100],[23,100],[24,100],[25,100],[26,100],[27,100],[28,100],[29,100],[30,100],[31,100],[32,100],[33,100],[34,100],[35,100],[36,100],[37,100],[38,100],[39,100],[40,100],[41,100],[42,100],[43,100],[44,100],[45,100],[46,100],[47,100],[48,100],[49,100],[50,100],[51,100]],"total_rows":50,"provided_rows":50,"shown_rows":50,"truncated":false,"execution_error":null,"display_rows":[["2","100"],["3","100"],["4","100"],["5","100"],["6","100"],["7","100"],["8","100"],["9","100"],["10","100"],["11","100"],["12","100"],["13","100"],["14","100"],["15","100"],["16","100"],["17","100"],["18","100"],["19","100"],["20","100"],["21","100"],["22","100"],["23","100"],["24","100"],["25","100"],["26","100"],["27","100"],["28","100"],["29","100"],["30","100"],["31","100"],["32","100"],["33","100"],["34","100"],["35","100"],["36","100"],["37","100"],["38","100"],["39","100"],["40","100"],["41","100"],["42","100"],["43","100"],["44","100"],["45","100"],["46","100"],["47","100"],["48","100"],["49","100"],["50","100"],["51","100"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=50, generated=50.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"ERROR","reason":"Synthetic example: A fabricated provider error prevented the sampled judgment.","judgment":null,"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":"SyntheticError","score":null},"sql_semantic":{"name":"sql_semantic","status":"REVIEW","reason":"Synthetic example: The question does not define how to choose boundary ties.","judgment":{"verdict":"PASS","reason":"Synthetic example: The question does not define how to choose boundary ties.","needs_review":true,"evidence":["ORDER BY total_sales DESC LIMIT 50 has no unique tie-break key."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":null}}},{"case_id":"synthetic-019","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Matching customer totals. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The supplied customer totals agree.","judgment":{"verdict":"PASS","reason":"Synthetic example: The supplied customer totals agree.","needs_review":false,"evidence":["customer_id 1 has total_sales 100 in both supplied previews."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","needs_review":false,"evidence":["Both SQL statements filter January and group by customer_id."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-020","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT o.customer_id, c.customer_name, SUM(o.amount) AS total_sales\nFROM orders o\nJOIN customers c ON c.customer_id = o.customer_id\nWHERE o.order_date \u003e= DATE '2026-01-01'\n  AND o.order_date \u003c DATE '2026-02-01'\nGROUP BY o.customer_id, c.customer_name\nORDER BY total_sales DESC","dialect":"postgresql","context":"Fabricated report fixture: Supplementary customer names. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. Every order has a matching customer; customer_name is supplementary.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","customer_name","total_sales"],"rows":[[3,"Cleo",300],[2,"Bob",200],[1,"Ada",100]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["3","Cleo","300"],["2","Bob","200"],["1","Ada","100"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The extra name column and reversed display order preserve totals.","judgment":{"verdict":"PASS","reason":"Synthetic example: The extra name column and reversed display order preserve totals.","needs_review":false,"evidence":["customer_id 1 still has total_sales 100; Ada is extra context."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The stated unique customer join preserves aggregation grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The stated unique customer join preserves aggregation grain.","needs_review":false,"evidence":["The January filter remains; the final ORDER BY is incidental."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-021","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Truncated output. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,10],[2,20],[3,30],[4,40],[5,50],[6,60],[7,70],[8,80],[9,90],[10,100],[11,110],[12,120],[13,130],[14,140],[15,150],[16,160],[17,170],[18,180],[19,190],[20,200],[21,210],[22,220],[23,230],[24,240],[25,250],[26,260],[27,270],[28,280],[29,290],[30,300],[31,310],[32,320],[33,330],[34,340],[35,350],[36,360],[37,370],[38,380],[39,390],[40,400],[41,410],[42,420],[43,430],[44,440],[45,450],[46,460],[47,470],[48,480],[49,490],[50,500]],"total_rows":1200,"provided_rows":80,"shown_rows":50,"truncated":true,"execution_error":null,"display_rows":[["1","10"],["2","20"],["3","30"],["4","40"],["5","50"],["6","60"],["7","70"],["8","80"],["9","90"],["10","100"],["11","110"],["12","120"],["13","130"],["14","140"],["15","150"],["16","160"],["17","170"],["18","180"],["19","190"],["20","200"],["21","210"],["22","220"],["23","230"],["24","240"],["25","250"],["26","260"],["27","270"],["28","280"],["29","290"],["30","300"],["31","310"],["32","320"],["33","330"],["34","340"],["35","350"],["36","360"],["37","370"],["38","380"],["39","390"],["40","400"],["41","410"],["42","420"],["43","430"],["44","440"],["45","450"],["46","460"],["47","470"],["48","480"],["49","490"],["50","500"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,10],[2,20],[3,30],[4,40],[5,50],[6,60],[7,70],[8,80],[9,90],[10,100],[11,110],[12,120],[13,130],[14,140],[15,150],[16,160],[17,170],[18,180],[19,190],[20,200],[21,210],[22,220],[23,230],[24,240],[25,250],[26,260],[27,270],[28,280],[29,290],[30,300],[31,310],[32,320],[33,330],[34,340],[35,350],[36,360],[37,370],[38,380],[39,390],[40,400],[41,410],[42,420],[43,430],[44,440],[45,450],[46,460],[47,470],[48,480],[49,490],[50,500]],"total_rows":1200,"provided_rows":80,"shown_rows":50,"truncated":true,"execution_error":null,"display_rows":[["1","10"],["2","20"],["3","30"],["4","40"],["5","50"],["6","60"],["7","70"],["8","80"],["9","90"],["10","100"],["11","110"],["12","120"],["13","130"],["14","140"],["15","150"],["16","160"],["17","170"],["18","180"],["19","190"],["20","200"],["21","210"],["22","220"],["23","230"],["24","240"],["25","250"],["26","260"],["27","270"],["28","280"],["29","290"],["30","300"],["31","310"],["32","320"],["33","330"],["34","340"],["35","350"],["36","360"],["37","370"],["38","380"],["39","390"],["40","400"],["41","410"],["42","420"],["43","430"],["44","440"],["45","450"],["46","460"],["47","470"],["48","480"],["49","490"],["50","500"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=1200, generated=1200.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The first 50 rows agree; unseen rows remain outside this metric.","judgment":{"verdict":"PASS","reason":"Synthetic example: The first 50 rows agree; unseen rows remain outside this metric.","needs_review":false,"evidence":["1,200 total rows; at most 50 are embedded per query."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","needs_review":false,"evidence":["Both SQL statements filter January and group by customer_id."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-022","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Same preview, missing date filter. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. The fabricated snapshot contains only January orders.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The fabricated preview agrees on this snapshot.","judgment":{"verdict":"PASS","reason":"Synthetic example: The fabricated preview agrees on this snapshot.","needs_review":false,"evidence":["customer_id 1 has total_sales 100 in both supplied previews."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: Generated SQL omits the date range required by the question.","judgment":{"verdict":"FAIL","reason":"Synthetic example: Generated SQL omits the date range required by the question.","needs_review":false,"evidence":["The generated SQL has no WHERE clause for January 2026."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-023","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount + 1) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Incorrect amount. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,999],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","999"],["3","300"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"FAIL","reason":"Synthetic example: The same customer's observed amount differs.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The same customer's observed amount differs.","needs_review":false,"evidence":["customer_id 2: target 200; generated 999."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: Adding one to every order changes the requested total.","judgment":{"verdict":"FAIL","reason":"Synthetic example: Adding one to every order changes the requested total.","needs_review":false,"evidence":["SUM(amount + 1) differs from SUM(amount)."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-024","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id\nHAVING SUM(amount) \u003c 300","dialect":"postgresql","context":"Fabricated report fixture: Missing customer. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200]],"total_rows":2,"provided_rows":2,"shown_rows":2,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"FAIL","reason":"Complete row counts: target=3, generated=2.","judgment":null,"metadata":null,"error_type":null,"score":0},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"FAIL","reason":"Synthetic example: The complete three-row target includes customer 3, which is missing.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The complete three-row target includes customer 3, which is missing.","needs_review":false,"evidence":["Target count 3; generated count 2; customer 3 is absent."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: The extra HAVING condition excludes a requested customer.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The extra HAVING condition excludes a requested customer.","needs_review":false,"evidence":["HAVING SUM(amount) \u003c 300 is not requested."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-025","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Empty result. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. The fabricated input has no January orders.","target_result":{"columns":["customer_id","total_sales"],"rows":[],"total_rows":0,"provided_rows":0,"shown_rows":0,"truncated":false,"execution_error":null,"display_rows":[]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[],"total_rows":0,"provided_rows":0,"shown_rows":0,"truncated":false,"execution_error":null,"display_rows":[]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=0, generated=0.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: Both complete outputs are empty; no sample contradiction is shown.","judgment":{"verdict":"PASS","reason":"Synthetic example: Both complete outputs are empty; no sample contradiction is shown.","needs_review":false,"evidence":["Both total_rows values are 0, with no preview rows."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","needs_review":false,"evidence":["Both SQL statements filter January and group by customer_id."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-026","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(missing_amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Execution error. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. orders has amount; it has no missing_amount column.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":[],"rows":[],"total_rows":null,"provided_rows":0,"shown_rows":0,"truncated":false,"execution_error":"Synthetic execution failure: missing_amount is not a column.","display_rows":[]},"scores":{"row_count_match":{"name":"row_count_match","status":"ERROR","reason":"Generated query did not execute successfully.","judgment":null,"metadata":null,"error_type":"InputExecutionError","score":null},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"ERROR","reason":"Synthetic example: The fabricated generated execution failed, so no result is compared.","judgment":null,"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":"SyntheticError","score":null},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: The generated query refers to a column absent from the stated schema.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The generated query refers to a column absent from the stated schema.","needs_review":false,"evidence":["SUM(missing_amount) references an undefined column."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-027","question":"Which 50 customers had the highest sales in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id\nORDER BY total_sales DESC LIMIT 50","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id\nORDER BY total_sales DESC LIMIT 50","dialect":"postgresql","context":"Fabricated report fixture: Judge error and uncertain ties. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,100],[3,100],[4,100],[5,100],[6,100],[7,100],[8,100],[9,100],[10,100],[11,100],[12,100],[13,100],[14,100],[15,100],[16,100],[17,100],[18,100],[19,100],[20,100],[21,100],[22,100],[23,100],[24,100],[25,100],[26,100],[27,100],[28,100],[29,100],[30,100],[31,100],[32,100],[33,100],[34,100],[35,100],[36,100],[37,100],[38,100],[39,100],[40,100],[41,100],[42,100],[43,100],[44,100],[45,100],[46,100],[47,100],[48,100],[49,100],[50,100]],"total_rows":50,"provided_rows":50,"shown_rows":50,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","100"],["3","100"],["4","100"],["5","100"],["6","100"],["7","100"],["8","100"],["9","100"],["10","100"],["11","100"],["12","100"],["13","100"],["14","100"],["15","100"],["16","100"],["17","100"],["18","100"],["19","100"],["20","100"],["21","100"],["22","100"],["23","100"],["24","100"],["25","100"],["26","100"],["27","100"],["28","100"],["29","100"],["30","100"],["31","100"],["32","100"],["33","100"],["34","100"],["35","100"],["36","100"],["37","100"],["38","100"],["39","100"],["40","100"],["41","100"],["42","100"],["43","100"],["44","100"],["45","100"],["46","100"],["47","100"],["48","100"],["49","100"],["50","100"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[2,100],[3,100],[4,100],[5,100],[6,100],[7,100],[8,100],[9,100],[10,100],[11,100],[12,100],[13,100],[14,100],[15,100],[16,100],[17,100],[18,100],[19,100],[20,100],[21,100],[22,100],[23,100],[24,100],[25,100],[26,100],[27,100],[28,100],[29,100],[30,100],[31,100],[32,100],[33,100],[34,100],[35,100],[36,100],[37,100],[38,100],[39,100],[40,100],[41,100],[42,100],[43,100],[44,100],[45,100],[46,100],[47,100],[48,100],[49,100],[50,100],[51,100]],"total_rows":50,"provided_rows":50,"shown_rows":50,"truncated":false,"execution_error":null,"display_rows":[["2","100"],["3","100"],["4","100"],["5","100"],["6","100"],["7","100"],["8","100"],["9","100"],["10","100"],["11","100"],["12","100"],["13","100"],["14","100"],["15","100"],["16","100"],["17","100"],["18","100"],["19","100"],["20","100"],["21","100"],["22","100"],["23","100"],["24","100"],["25","100"],["26","100"],["27","100"],["28","100"],["29","100"],["30","100"],["31","100"],["32","100"],["33","100"],["34","100"],["35","100"],["36","100"],["37","100"],["38","100"],["39","100"],["40","100"],["41","100"],["42","100"],["43","100"],["44","100"],["45","100"],["46","100"],["47","100"],["48","100"],["49","100"],["50","100"],["51","100"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=50, generated=50.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"ERROR","reason":"Synthetic example: A fabricated provider error prevented the sampled judgment.","judgment":null,"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":"SyntheticError","score":null},"sql_semantic":{"name":"sql_semantic","status":"REVIEW","reason":"Synthetic example: The question does not define how to choose boundary ties.","judgment":{"verdict":"PASS","reason":"Synthetic example: The question does not define how to choose boundary ties.","needs_review":true,"evidence":["ORDER BY total_sales DESC LIMIT 50 has no unique tie-break key."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":null}}},{"case_id":"synthetic-028","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Matching customer totals. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The supplied customer totals agree.","judgment":{"verdict":"PASS","reason":"Synthetic example: The supplied customer totals agree.","needs_review":false,"evidence":["customer_id 1 has total_sales 100 in both supplied previews."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","needs_review":false,"evidence":["Both SQL statements filter January and group by customer_id."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-029","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT o.customer_id, c.customer_name, SUM(o.amount) AS total_sales\nFROM orders o\nJOIN customers c ON c.customer_id = o.customer_id\nWHERE o.order_date \u003e= DATE '2026-01-01'\n  AND o.order_date \u003c DATE '2026-02-01'\nGROUP BY o.customer_id, c.customer_name\nORDER BY total_sales DESC","dialect":"postgresql","context":"Fabricated report fixture: Supplementary customer names. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. Every order has a matching customer; customer_name is supplementary.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","customer_name","total_sales"],"rows":[[3,"Cleo",300],[2,"Bob",200],[1,"Ada",100]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["3","Cleo","300"],["2","Bob","200"],["1","Ada","100"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The extra name column and reversed display order preserve totals.","judgment":{"verdict":"PASS","reason":"Synthetic example: The extra name column and reversed display order preserve totals.","needs_review":false,"evidence":["customer_id 1 still has total_sales 100; Ada is extra context."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The stated unique customer join preserves aggregation grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The stated unique customer join preserves aggregation grain.","needs_review":false,"evidence":["The January filter remains; the final ORDER BY is incidental."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-030","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Truncated output. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,10],[2,20],[3,30],[4,40],[5,50],[6,60],[7,70],[8,80],[9,90],[10,100],[11,110],[12,120],[13,130],[14,140],[15,150],[16,160],[17,170],[18,180],[19,190],[20,200],[21,210],[22,220],[23,230],[24,240],[25,250],[26,260],[27,270],[28,280],[29,290],[30,300],[31,310],[32,320],[33,330],[34,340],[35,350],[36,360],[37,370],[38,380],[39,390],[40,400],[41,410],[42,420],[43,430],[44,440],[45,450],[46,460],[47,470],[48,480],[49,490],[50,500]],"total_rows":1200,"provided_rows":80,"shown_rows":50,"truncated":true,"execution_error":null,"display_rows":[["1","10"],["2","20"],["3","30"],["4","40"],["5","50"],["6","60"],["7","70"],["8","80"],["9","90"],["10","100"],["11","110"],["12","120"],["13","130"],["14","140"],["15","150"],["16","160"],["17","170"],["18","180"],["19","190"],["20","200"],["21","210"],["22","220"],["23","230"],["24","240"],["25","250"],["26","260"],["27","270"],["28","280"],["29","290"],["30","300"],["31","310"],["32","320"],["33","330"],["34","340"],["35","350"],["36","360"],["37","370"],["38","380"],["39","390"],["40","400"],["41","410"],["42","420"],["43","430"],["44","440"],["45","450"],["46","460"],["47","470"],["48","480"],["49","490"],["50","500"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,10],[2,20],[3,30],[4,40],[5,50],[6,60],[7,70],[8,80],[9,90],[10,100],[11,110],[12,120],[13,130],[14,140],[15,150],[16,160],[17,170],[18,180],[19,190],[20,200],[21,210],[22,220],[23,230],[24,240],[25,250],[26,260],[27,270],[28,280],[29,290],[30,300],[31,310],[32,320],[33,330],[34,340],[35,350],[36,360],[37,370],[38,380],[39,390],[40,400],[41,410],[42,420],[43,430],[44,440],[45,450],[46,460],[47,470],[48,480],[49,490],[50,500]],"total_rows":1200,"provided_rows":80,"shown_rows":50,"truncated":true,"execution_error":null,"display_rows":[["1","10"],["2","20"],["3","30"],["4","40"],["5","50"],["6","60"],["7","70"],["8","80"],["9","90"],["10","100"],["11","110"],["12","120"],["13","130"],["14","140"],["15","150"],["16","160"],["17","170"],["18","180"],["19","190"],["20","200"],["21","210"],["22","220"],["23","230"],["24","240"],["25","250"],["26","260"],["27","270"],["28","280"],["29","290"],["30","300"],["31","310"],["32","320"],["33","330"],["34","340"],["35","350"],["36","360"],["37","370"],["38","380"],["39","390"],["40","400"],["41","410"],["42","420"],["43","430"],["44","440"],["45","450"],["46","460"],["47","470"],["48","480"],["49","490"],["50","500"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=1200, generated=1200.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The first 50 rows agree; unseen rows remain outside this metric.","judgment":{"verdict":"PASS","reason":"Synthetic example: The first 50 rows agree; unseen rows remain outside this metric.","needs_review":false,"evidence":["1,200 total rows; at most 50 are embedded per query."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","needs_review":false,"evidence":["Both SQL statements filter January and group by customer_id."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-031","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Same preview, missing date filter. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. The fabricated snapshot contains only January orders.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: The fabricated preview agrees on this snapshot.","judgment":{"verdict":"PASS","reason":"Synthetic example: The fabricated preview agrees on this snapshot.","needs_review":false,"evidence":["customer_id 1 has total_sales 100 in both supplied previews."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: Generated SQL omits the date range required by the question.","judgment":{"verdict":"FAIL","reason":"Synthetic example: Generated SQL omits the date range required by the question.","needs_review":false,"evidence":["The generated SQL has no WHERE clause for January 2026."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-032","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount + 1) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Incorrect amount. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,999],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","999"],["3","300"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=3, generated=3.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"FAIL","reason":"Synthetic example: The same customer's observed amount differs.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The same customer's observed amount differs.","needs_review":false,"evidence":["customer_id 2: target 200; generated 999."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: Adding one to every order changes the requested total.","judgment":{"verdict":"FAIL","reason":"Synthetic example: Adding one to every order changes the requested total.","needs_review":false,"evidence":["SUM(amount + 1) differs from SUM(amount)."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-033","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id\nHAVING SUM(amount) \u003c 300","dialect":"postgresql","context":"Fabricated report fixture: Missing customer. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200]],"total_rows":2,"provided_rows":2,"shown_rows":2,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"FAIL","reason":"Complete row counts: target=3, generated=2.","judgment":null,"metadata":null,"error_type":null,"score":0},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"FAIL","reason":"Synthetic example: The complete three-row target includes customer 3, which is missing.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The complete three-row target includes customer 3, which is missing.","needs_review":false,"evidence":["Target count 3; generated count 2; customer 3 is absent."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: The extra HAVING condition excludes a requested customer.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The extra HAVING condition excludes a requested customer.","needs_review":false,"evidence":["HAVING SUM(amount) \u003c 300 is not requested."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-034","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Empty result. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. The fabricated input has no January orders.","target_result":{"columns":["customer_id","total_sales"],"rows":[],"total_rows":0,"provided_rows":0,"shown_rows":0,"truncated":false,"execution_error":null,"display_rows":[]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[],"total_rows":0,"provided_rows":0,"shown_rows":0,"truncated":false,"execution_error":null,"display_rows":[]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=0, generated=0.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"PASS","reason":"Synthetic example: Both complete outputs are empty; no sample contradiction is shown.","judgment":{"verdict":"PASS","reason":"Synthetic example: Both complete outputs are empty; no sample contradiction is shown.","needs_review":false,"evidence":["Both total_rows values are 0, with no preview rows."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1},"sql_semantic":{"name":"sql_semantic","status":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","judgment":{"verdict":"PASS","reason":"Synthetic example: The SQL preserves the requested January filter and customer grain.","needs_review":false,"evidence":["Both SQL statements filter January and group by customer_id."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":1}}},{"case_id":"synthetic-035","question":"What is the total sales amount for each customer in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","generated_sql":"SELECT customer_id, SUM(missing_amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id","dialect":"postgresql","context":"Fabricated report fixture: Execution error. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise. orders has amount; it has no missing_amount column.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,200],[3,300]],"total_rows":3,"provided_rows":3,"shown_rows":3,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","200"],["3","300"]]},"generated_result":{"columns":[],"rows":[],"total_rows":null,"provided_rows":0,"shown_rows":0,"truncated":false,"execution_error":"Synthetic execution failure: missing_amount is not a column.","display_rows":[]},"scores":{"row_count_match":{"name":"row_count_match","status":"ERROR","reason":"Generated query did not execute successfully.","judgment":null,"metadata":null,"error_type":"InputExecutionError","score":null},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"ERROR","reason":"Synthetic example: The fabricated generated execution failed, so no result is compared.","judgment":null,"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":"SyntheticError","score":null},"sql_semantic":{"name":"sql_semantic","status":"FAIL","reason":"Synthetic example: The generated query refers to a column absent from the stated schema.","judgment":{"verdict":"FAIL","reason":"Synthetic example: The generated query refers to a column absent from the stated schema.","needs_review":false,"evidence":["SUM(missing_amount) references an undefined column."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":0}}},{"case_id":"synthetic-036","question":"Which 50 customers had the highest sales in January 2026?","target_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id\nORDER BY total_sales DESC LIMIT 50","generated_sql":"SELECT customer_id, SUM(amount) AS total_sales\nFROM orders\nWHERE order_date \u003e= DATE '2026-01-01'\n  AND order_date \u003c DATE '2026-02-01'\nGROUP BY customer_id\nORDER BY total_sales DESC LIMIT 50","dialect":"postgresql","context":"Fabricated report fixture: Judge error and uncertain ties. Neither SQL statement was executed. Customer IDs are unique, and each order belongs to a customer. No final display order is required unless the question states otherwise.","target_result":{"columns":["customer_id","total_sales"],"rows":[[1,100],[2,100],[3,100],[4,100],[5,100],[6,100],[7,100],[8,100],[9,100],[10,100],[11,100],[12,100],[13,100],[14,100],[15,100],[16,100],[17,100],[18,100],[19,100],[20,100],[21,100],[22,100],[23,100],[24,100],[25,100],[26,100],[27,100],[28,100],[29,100],[30,100],[31,100],[32,100],[33,100],[34,100],[35,100],[36,100],[37,100],[38,100],[39,100],[40,100],[41,100],[42,100],[43,100],[44,100],[45,100],[46,100],[47,100],[48,100],[49,100],[50,100]],"total_rows":50,"provided_rows":50,"shown_rows":50,"truncated":false,"execution_error":null,"display_rows":[["1","100"],["2","100"],["3","100"],["4","100"],["5","100"],["6","100"],["7","100"],["8","100"],["9","100"],["10","100"],["11","100"],["12","100"],["13","100"],["14","100"],["15","100"],["16","100"],["17","100"],["18","100"],["19","100"],["20","100"],["21","100"],["22","100"],["23","100"],["24","100"],["25","100"],["26","100"],["27","100"],["28","100"],["29","100"],["30","100"],["31","100"],["32","100"],["33","100"],["34","100"],["35","100"],["36","100"],["37","100"],["38","100"],["39","100"],["40","100"],["41","100"],["42","100"],["43","100"],["44","100"],["45","100"],["46","100"],["47","100"],["48","100"],["49","100"],["50","100"]]},"generated_result":{"columns":["customer_id","total_sales"],"rows":[[2,100],[3,100],[4,100],[5,100],[6,100],[7,100],[8,100],[9,100],[10,100],[11,100],[12,100],[13,100],[14,100],[15,100],[16,100],[17,100],[18,100],[19,100],[20,100],[21,100],[22,100],[23,100],[24,100],[25,100],[26,100],[27,100],[28,100],[29,100],[30,100],[31,100],[32,100],[33,100],[34,100],[35,100],[36,100],[37,100],[38,100],[39,100],[40,100],[41,100],[42,100],[43,100],[44,100],[45,100],[46,100],[47,100],[48,100],[49,100],[50,100],[51,100]],"total_rows":50,"provided_rows":50,"shown_rows":50,"truncated":false,"execution_error":null,"display_rows":[["2","100"],["3","100"],["4","100"],["5","100"],["6","100"],["7","100"],["8","100"],["9","100"],["10","100"],["11","100"],["12","100"],["13","100"],["14","100"],["15","100"],["16","100"],["17","100"],["18","100"],["19","100"],["20","100"],["21","100"],["22","100"],["23","100"],["24","100"],["25","100"],["26","100"],["27","100"],["28","100"],["29","100"],["30","100"],["31","100"],["32","100"],["33","100"],["34","100"],["35","100"],["36","100"],["37","100"],["38","100"],["39","100"],["40","100"],["41","100"],["42","100"],["43","100"],["44","100"],["45","100"],["46","100"],["47","100"],["48","100"],["49","100"],["50","100"],["51","100"]]},"scores":{"row_count_match":{"name":"row_count_match","status":"PASS","reason":"Complete row counts: target=50, generated=50.","judgment":null,"metadata":null,"error_type":null,"score":1},"sampled_result_consistency":{"name":"sampled_result_consistency","status":"ERROR","reason":"Synthetic example: A fabricated provider error prevented the sampled judgment.","judgment":null,"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":"SyntheticError","score":null},"sql_semantic":{"name":"sql_semantic","status":"REVIEW","reason":"Synthetic example: The question does not define how to choose boundary ties.","judgment":{"verdict":"PASS","reason":"Synthetic example: The question does not define how to choose boundary ties.","needs_review":true,"evidence":["ORDER BY total_sales DESC LIMIT 50 has no unique tie-break key."]},"metadata":{"model":"synthetic-demo/no-model-called","prompt_sha256":"9842b8ee72dccaae5808e283ebba00c82635f1f4e419049c412599764df36b7d","elapsed_seconds":0.0,"token_usage":null},"error_type":null,"score":null}}}]}</script>
+  <script>"use strict";
+
+(() => {
+  const report = JSON.parse(document.getElementById("report-data").textContent);
+  const metricDefinitions = [
+    {key: "row_count_match", label: "Row count match", description: "The complete result row counts are equal."},
+    {key: "sampled_result_consistency", label: "Sampled consistency", description: "No contradiction found in the supplied sample."},
+    {key: "sql_semantic", label: "SQL semantics", description: "The judge considers the SQL to satisfy the question."},
+  ];
+  const statuses = ["PASS", "FAIL", "REVIEW", "ERROR"];
+  const statusIcons = {PASS: "✓", FAIL: "×", REVIEW: "?", ERROR: "!"};
+  const statusRank = {ERROR: 0, REVIEW: 1, FAIL: 2, PASS: 3};
+  const number = new Intl.NumberFormat(undefined, {maximumFractionDigits: 0});
+  const percentage = new Intl.NumberFormat(undefined, {style: "percent", maximumFractionDigits: 1});
+  const formatRate = value => value === null ? "—" : percentage.format(value);
+  const byId = id => document.getElementById(id);
+  const records = report.cases.map((data, index) => ({
+    data,
+    index,
+    search: [data.case_id, data.question, data.target_sql, data.generated_sql,
+      ...metricDefinitions.flatMap(metric => {
+        const score = data.scores[metric.key];
+        return [score.reason, ...(score.judgment?.evidence || [])];
+      })].join(" ").toLocaleLowerCase(),
+  }));
+  const state = {search: "", metric: "all", status: "all", disagreement: false, page: 1,
+    sort: null, direction: "ascending", expanded: null};
+  const pageSize = 25;
+
+  function element(tag, className, text) {
+    const result = document.createElement(tag);
+    if (className) result.className = className;
+    if (text !== undefined) result.textContent = String(text);
+    return result;
+  }
+
+  function statusBadge(status) {
+    const badge = element("span", `status status-${status}`);
+    const icon = element("span", "status-icon", statusIcons[status]);
+    icon.setAttribute("aria-hidden", "true");
+    badge.append(icon, document.createTextNode(status));
+    return badge;
+  }
+
+  function renderOverview() {
+    document.title = report.title;
+    byId("report-title").textContent = report.title;
+    byId("total-cases").textContent = `${number.format(records.length)} cases · fixed evaluation set`;
+    const version = element("p");
+    version.append(document.createTextNode("Producer "), element("strong", "", `v${report.package_version}`));
+    const rendered = element("p", "", `Report rendered ${new Date(report.rendered_at).toISOString().replace("T", " ").replace(/\.\d+Z$/, " UTC")}`);
+    byId("run-meta").append(version, rendered);
+    const cards = byId("metric-cards");
+    metricDefinitions.forEach((metric, index) => {
+      const summary = report.summary[metric.key];
+      const card = element("article", "metric-card");
+      const top = element("div", "metric-topline");
+      top.append(element("span", "metric-index", `0${index + 1}`), element("h3", "metric-name", metric.label));
+      card.append(top, element("p", "metric-rate-label", "Pass rate"),
+        element("p", "metric-number", formatRate(summary.pass_rate)),
+        element("p", "metric-count", `${number.format(summary.passed)} of ${number.format(summary.cases)} cases passed`),
+        element("p", "metric-description", metric.description));
+      const bar = element("div", "status-bar");
+      bar.setAttribute("aria-hidden", "true");
+      const legend = element("div", "metric-legend");
+      const countKeys = {PASS: "passed", FAIL: "failed", REVIEW: "review", ERROR: "errors"};
+      statuses.forEach(status => {
+        const count = summary[countKeys[status]];
+        const segment = element("span", `segment-${status}`);
+        segment.style.width = `${summary.cases ? count / summary.cases * 100 : 0}%`;
+        bar.append(segment);
+        const item = element("span", "legend-item");
+        const dot = element("span", `legend-dot status-${status}`);
+        dot.setAttribute("aria-hidden", "true");
+        item.append(dot, document.createTextNode(`${number.format(count)} ${status.toLowerCase()}`));
+        legend.append(item);
+      });
+      const coverage = element("p", "coverage-line");
+      coverage.append(element("span", "", "Decision coverage"), element("strong", "", formatRate(summary.decision_coverage)));
+      card.append(bar, legend, coverage);
+      cards.append(card);
+    });
+  }
+
+  function isDisagreement(record) {
+    const sample = record.data.scores.sampled_result_consistency.status;
+    const semantics = record.data.scores.sql_semantic.status;
+    return (sample === "PASS" && semantics === "FAIL") || (sample === "FAIL" && semantics === "PASS");
+  }
+
+  function selectedRecords() {
+    const filtered = records.filter(record => {
+      if (state.search && !record.search.includes(state.search)) return false;
+      if (state.disagreement && !isDisagreement(record)) return false;
+      if (state.status !== "all") {
+        const keys = state.metric === "all" ? metricDefinitions.map(metric => metric.key) : [state.metric];
+        if (!keys.some(key => record.data.scores[key].status === state.status)) return false;
+      }
+      return true;
+    });
+    if (state.sort) {
+      const direction = state.direction === "ascending" ? 1 : -1;
+      filtered.sort((left, right) => {
+        let comparison;
+        if (state.sort === "case_id" || state.sort === "question") {
+          comparison = left.data[state.sort].localeCompare(right.data[state.sort], undefined, {numeric: true});
+        } else {
+          comparison = statusRank[left.data.scores[state.sort].status] - statusRank[right.data.scores[state.sort].status];
+        }
+        return comparison * direction || left.index - right.index;
+      });
+    }
+    return filtered;
+  }
+
+  function tableRow(record) {
+    const row = element("tr", `case-row${state.expanded === record.index ? " is-expanded" : ""}`);
+    row.id = `case-${record.index}`;
+    const idCell = element("td");
+    const opener = element("button", "case-opener");
+    opener.type = "button";
+    opener.dataset.caseIndex = String(record.index);
+    opener.setAttribute("aria-expanded", String(state.expanded === record.index));
+    opener.setAttribute("aria-controls", `case-detail-${record.index}`);
+    opener.setAttribute("aria-label", `Review case ${record.data.case_id}`);
+    const chevron = element("span", "chevron", state.expanded === record.index ? "⌄" : "›");
+    chevron.setAttribute("aria-hidden", "true");
+    opener.append(chevron, element("span", "case-id-text", record.data.case_id));
+    opener.addEventListener("click", () => toggleCase(record.index));
+    idCell.append(opener);
+    row.append(idCell, element("td", "case-question", record.data.question));
+    metricDefinitions.forEach(metric => {
+      const cell = element("td", "status-cell");
+      cell.dataset.label = metric.label;
+      cell.append(statusBadge(record.data.scores[metric.key].status));
+      row.append(cell);
+    });
+    return row;
+  }
+
+  function sqlPanel(label, sql) {
+    const panel = element("section", "compare-panel");
+    const heading = element("div", "panel-header");
+    heading.append(element("h5", "", label), element("span", "panel-marker", "SQL"));
+    const pre = element("pre", "sql-code");
+    pre.tabIndex = 0;
+    pre.setAttribute("aria-label", label);
+    pre.append(element("code", "", sql || "No generated SQL is available."));
+    panel.append(heading, pre);
+    return panel;
+  }
+
+  function previewPanel(label, result) {
+    const panel = element("section", "compare-panel");
+    const heading = element("div", "panel-header");
+    heading.append(element("h5", "", label), element("span", "panel-marker", "Execution preview"));
+    panel.append(heading);
+    if (result.execution_error !== null) {
+      const error = element("div", "execution-error");
+      error.append(statusBadge("ERROR"), element("p", "", result.execution_error));
+      panel.append(error);
+      return panel;
+    }
+    const stats = element("div", "preview-stats");
+    const total = element("span");
+    total.append(element("strong", "", number.format(result.total_rows)), document.createTextNode(" total rows"));
+    stats.append(total, element("span", "", `${number.format(result.shown_rows)} shown`),
+      element("span", "", `${number.format(result.provided_rows)} supplied`));
+    if (result.truncated) stats.append(element("span", "preview-flag", "Preview truncated"));
+    panel.append(stats);
+    if (!result.shown_rows) {
+      panel.append(element("p", "empty-preview", result.total_rows === 0
+        ? "The query completed successfully and returned no rows."
+        : "No preview rows were supplied. The complete output contains records."));
+      return panel;
+    }
+    const wrapper = element("div", "table-scroll");
+    wrapper.tabIndex = 0;
+    wrapper.setAttribute("role", "region");
+    wrapper.setAttribute("aria-label", `${label}: scroll to read all columns`);
+    const table = element("table", "preview-table");
+    table.append(element("caption", "sr-only", `${label}: ${result.shown_rows} independent preview rows`));
+    const head = element("thead");
+    const headingRow = element("tr");
+    result.columns.forEach(column => {
+      const th = element("th", "", column);
+      th.scope = "col";
+      headingRow.append(th);
+    });
+    head.append(headingRow);
+    const body = element("tbody");
+    result.display_rows.forEach((values, rowIndex) => {
+      const tr = element("tr");
+      values.forEach((value, columnIndex) => {
+        const isNull = result.rows[rowIndex][columnIndex] === null;
+        const td = element("td", isNull ? "value-null" : "", value);
+        if (isNull) td.setAttribute("aria-label", "Database NULL");
+        tr.append(td);
+      });
+      body.append(tr);
+    });
+    table.append(head, body);
+    wrapper.append(table);
+    panel.append(wrapper);
+    return panel;
+  }
+
+  function metadataBlock(metadata) {
+    const disclosure = element("details", "metadata");
+    disclosure.append(element("summary", "", "Judge metadata"));
+    const list = element("dl");
+    const entries = [
+      ["Model", metadata.model],
+      ["Elapsed time", `${metadata.elapsed_seconds.toFixed(2)} seconds`],
+      ["Token usage", metadata.token_usage === null ? "Not supplied" : Object.entries(metadata.token_usage).map(([key, value]) => `${key.replaceAll("_", " ")}: ${number.format(value)}`).join(" · ")],
+      ["Prompt SHA-256", metadata.prompt_sha256],
+    ];
+    entries.forEach(([label, value]) => {
+      list.append(element("dt", "", label), element("dd", label === "Prompt SHA-256" ? "hash" : "", value));
+    });
+    disclosure.append(list);
+    return disclosure;
+  }
+
+  function metricDetail(metric, score) {
+    const card = element("section", "metric-detail");
+    const heading = element("div", "metric-detail-head");
+    heading.append(element("h5", "", metric.label), statusBadge(score.status));
+    card.append(heading, element("p", "reason-text", score.reason));
+    if (score.judgment) {
+      card.append(element("p", "evidence-label", "Evidence"));
+      if (score.judgment.evidence.length) {
+        const evidence = element("ul", "evidence-list");
+        score.judgment.evidence.forEach(item => evidence.append(element("li", "", item)));
+        card.append(evidence);
+      } else {
+        card.append(element("p", "muted", "No evidence items supplied."));
+      }
+      const note = score.judgment.needs_review
+        ? `Review required. Provisional ${score.judgment.verdict} is not counted as a decision.`
+        : `Automatic decision · score ${score.score}`;
+      card.append(element("p", `decision-note${score.judgment.needs_review ? " is-review" : ""}`, note));
+    } else {
+      card.append(element("p", "decision-note", score.status === "ERROR"
+        ? `No correctness verdict was made.${score.error_type ? ` Error category: ${score.error_type}.` : ""}`
+        : `Deterministic comparison · score ${score.score}`));
+    }
+    if (score.metadata) card.append(metadataBlock(score.metadata));
+    return card;
+  }
+
+  function detailsRow(record) {
+    const row = element("tr", "detail-row");
+    const cell = element("td");
+    cell.colSpan = 5;
+    const detail = element("article", "case-detail");
+    detail.id = `case-detail-${record.index}`;
+    detail.setAttribute("aria-labelledby", `case-detail-title-${record.index}`);
+    const heading = element("div", "detail-header");
+    const title = element("h3", "", `Case ${record.data.case_id}`);
+    title.id = `case-detail-title-${record.index}`;
+    title.tabIndex = -1;
+    const close = element("button", "button button-secondary detail-close", "Close details");
+    close.type = "button";
+    close.addEventListener("click", () => closeCase(true));
+    heading.append(title, close);
+    detail.append(heading, element("p", "detail-question", record.data.question));
+    const facts = element("div", "detail-facts");
+    if (record.data.dialect) facts.append(element("span", "plain-chip", `Dialect: ${record.data.dialect}`));
+    if (isDisagreement(record)) facts.append(element("span", "plain-chip", "LLM judges disagree: one pass, one fail"));
+    if (facts.childNodes.length) detail.append(facts);
+    if (record.data.context) {
+      const context = element("details", "context-block");
+      context.append(element("summary", "", "Context and assumptions"), element("p", "", record.data.context));
+      detail.append(context);
+    }
+    const sql = element("section", "detail-section");
+    sql.append(element("h4", "", "SQL comparison"));
+    const sqlGrid = element("div", "compare-grid");
+    sqlGrid.append(sqlPanel("Target SQL", record.data.target_sql), sqlPanel("Generated SQL", record.data.generated_sql));
+    sql.append(sqlGrid);
+    const previews = element("section", "detail-section");
+    previews.append(element("h4", "", "Execution previews"), element("p", "preview-note", "Independent previews in their returned order. Row positions do not indicate matched records."));
+    const previewGrid = element("div", "compare-grid");
+    previewGrid.append(previewPanel("Target result", record.data.target_result), previewPanel("Generated result", record.data.generated_result));
+    previews.append(previewGrid);
+    const judgments = element("section", "detail-section");
+    judgments.append(element("h4", "", "Metric decisions and evidence"));
+    const judgmentGrid = element("div", "metric-detail-grid");
+    metricDefinitions.forEach(metric => judgmentGrid.append(metricDetail(metric, record.data.scores[metric.key])));
+    judgments.append(judgmentGrid);
+    detail.append(judgments, sql, previews);
+    cell.append(detail);
+    row.append(cell);
+    return row;
+  }
+
+  function renderCases() {
+    const selected = selectedRecords();
+    const pages = Math.max(1, Math.ceil(selected.length / pageSize));
+    state.page = Math.min(state.page, pages);
+    const start = (state.page - 1) * pageSize;
+    const shown = selected.slice(start, start + pageSize);
+    const body = byId("case-table-body");
+    const fragment = document.createDocumentFragment();
+    if (!shown.length) {
+      const row = element("tr");
+      const cell = element("td", "empty-state");
+      cell.colSpan = 5;
+      cell.append(element("strong", "", records.length ? "No matching cases" : "No evaluation cases"),
+        element("p", "", records.length ? "Try a different search or reset the filters." : "This report contains an empty evaluation set. Rates are undefined."));
+      row.append(cell);
+      fragment.append(row);
+    }
+    shown.forEach(record => {
+      fragment.append(tableRow(record));
+      if (record.index === state.expanded) fragment.append(detailsRow(record));
+    });
+    body.replaceChildren(fragment);
+    const range = selected.length ? `${number.format(start + 1)}–${number.format(start + shown.length)}` : "0";
+    const countText = `Showing ${range} of ${number.format(selected.length)} matching cases · ${number.format(records.length)} total`;
+    if (byId("result-count").textContent !== countText) byId("result-count").textContent = countText;
+    byId("page-label").textContent = `Page ${state.page} of ${pages} · 25 cases per page`;
+    byId("prev-page").disabled = state.page <= 1;
+    byId("next-page").disabled = state.page >= pages;
+    document.querySelectorAll("[data-sort]").forEach(button => {
+      const selectedSort = button.dataset.sort === state.sort;
+      button.closest("th").setAttribute("aria-sort", selectedSort ? state.direction : "none");
+      button.querySelector(".sort-symbol").textContent = selectedSort ? (state.direction === "ascending" ? "↑" : "↓") : "↕";
+    });
+  }
+
+  function setHash(index) {
+    const hash = index === null ? `${window.location.pathname}${window.location.search}` : `#case-${index}`;
+    window.history.replaceState(null, "", hash);
+  }
+
+  function closeCase(restoreFocus) {
+    const previous = state.expanded;
+    state.expanded = null;
+    setHash(null);
+    renderCases();
+    if (restoreFocus && previous !== null) document.querySelector(`[data-case-index="${previous}"]`)?.focus();
+  }
+
+  function toggleCase(index) {
+    if (state.expanded === index) {
+      closeCase(true);
+      return;
+    }
+    state.expanded = index;
+    setHash(index);
+    renderCases();
+    const title = byId(`case-detail-title-${index}`);
+    title.focus({preventScroll: true});
+    title.scrollIntoView({block: "nearest"});
+  }
+
+  function syncFilters() {
+    byId("case-search").value = state.search;
+    byId("metric-filter").value = state.metric;
+    byId("status-filter").value = state.status;
+    byId("disagreement-filter").checked = state.disagreement;
+  }
+
+  function filterChanged() {
+    state.search = byId("case-search").value.trim().toLocaleLowerCase();
+    state.metric = byId("metric-filter").value;
+    state.status = byId("status-filter").value;
+    state.disagreement = byId("disagreement-filter").checked;
+    state.page = 1;
+    state.expanded = null;
+    setHash(null);
+    renderCases();
+  }
+
+  function openHashCase() {
+    const match = /^#case-(\d+)$/.exec(window.location.hash);
+    if (!match) return;
+    const index = Number(match[1]);
+    if (!Number.isSafeInteger(index) || index >= records.length) return;
+    state.search = "";
+    state.metric = "all";
+    state.status = "all";
+    state.disagreement = false;
+    state.expanded = index;
+    syncFilters();
+    const ordered = selectedRecords();
+    state.page = Math.floor(ordered.findIndex(record => record.index === index) / pageSize) + 1;
+    renderCases();
+    byId(`case-detail-title-${index}`).focus({preventScroll: true});
+    byId(`case-${index}`).scrollIntoView({block: "start"});
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    const target = theme === "dark" ? "light" : "dark";
+    byId("theme-toggle").textContent = `${target === "dark" ? "Dark" : "Light"} theme`;
+    byId("theme-toggle").setAttribute("aria-label", `Switch to ${target} theme`);
+  }
+
+  renderOverview();
+  renderCases();
+  applyTheme(window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  byId("theme-toggle").addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+  byId("print-report").addEventListener("click", () => window.print());
+  byId("case-search").addEventListener("input", filterChanged);
+  byId("metric-filter").addEventListener("change", filterChanged);
+  byId("status-filter").addEventListener("change", filterChanged);
+  byId("disagreement-filter").addEventListener("change", filterChanged);
+  byId("clear-filters").addEventListener("click", () => {
+    state.search = "";
+    state.metric = "all";
+    state.status = "all";
+    state.disagreement = false;
+    state.page = 1;
+    state.sort = null;
+    state.expanded = null;
+    setHash(null);
+    syncFilters();
+    renderCases();
+  });
+  document.querySelectorAll("[data-sort]").forEach(button => button.addEventListener("click", () => {
+    const key = button.dataset.sort;
+    state.direction = state.sort === key && state.direction === "ascending" ? "descending" : "ascending";
+    state.sort = key;
+    state.page = 1;
+    state.expanded = null;
+    setHash(null);
+    renderCases();
+  }));
+  for (const [id, change] of [["prev-page", -1], ["next-page", 1]]) {
+    byId(id).addEventListener("click", () => {
+      state.page += change;
+      state.expanded = null;
+      setHash(null);
+      renderCases();
+      byId("cases-heading").scrollIntoView({block: "start"});
+    });
+  }
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && state.expanded !== null) {
+      event.preventDefault();
+      closeCase(true);
+    }
+  });
+  window.addEventListener("hashchange", openHashCase);
+  openHashCase();
+})();
+</script>
+</body>
+</html>
