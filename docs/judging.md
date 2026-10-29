@@ -6,8 +6,9 @@ The package keeps three separate scores:
 2. **Sampled Result Consistency:** an LLM assesses execution previews with SQL
    context. A pass means no material contradiction was found in the supplied
    evidence. It does not establish full-result equality.
-3. **SQL Semantic Pass:** a separate LLM call assesses the question and SQL
-   logic without execution previews or the first judge's decision.
+3. **SQL Semantic Pass:** a separate LLM call compares generated SQL with target
+   SQL for the answer required by the question, without execution previews or
+   the first judge's decision.
 
 The prompts are packaged as readable Markdown resources:
 
@@ -99,8 +100,18 @@ explains this behavior.
 
 The SQL-semantic call receives the question and both SQL queries, plus any
 existing context or dialect. It receives no previews, counts or first-judge
-decision. It checks whether generated SQL satisfies the task, rather than
-requiring identical SQL text or structure.
+decision. It directly compares the target and generated SQL for semantic
+equivalence on the answer required by the question. The target supplies the
+reference logic; the question determines whether a difference matters. The
+judge must cite corresponding clauses from both queries, or identify a missing
+clause. It does not require identical SQL text, structure, or supplementary
+columns, and it must not pass a query just because it looks plausible alone.
+
+For example, a target using `SUM(amount)` and a generated query using
+`AVG(amount)` fail for a question asking for total sales. A target using a
+subquery and a generated query using a CTE can pass when they preserve the same
+required logic. If the target contradicts the question, request review and flag
+the reference issue instead of rewarding the same mistake in generated SQL.
 
 For example, a generated query may omit a required date filter yet match all
 sampled rows because the current database contains only that date range. Sampled

@@ -1,7 +1,10 @@
 ## Metric: SQL semantic pass
 
-Your job is to assess whether the generated SQL satisfies the natural-language
-question under the supplied context, using the target SQL as a reference.
+Compare the generated SQL directly with the target SQL for semantic equivalence
+on the answer required by the natural-language question and supplied context.
+The target is the reference implementation; the question and context determine
+which differences affect the required answer. This is a two-query comparison,
+not a standalone plausibility check of the generated SQL.
 Do not ask whether the SQL strings are identical, whether their syntax trees
 match, or whether the complete projected outputs contain exactly the same
 columns. Valid SQL can differ in text, structure and supplementary information.
@@ -23,12 +26,14 @@ proof or an automatic failure.
    ordering, ranking, and limits. Use supplied context to resolve terminology.
    Do not invent a semantic model when none is supplied.
 
-2. Compare each query's logic with those requirements. Use the reference to
-   identify the intended operations, but check whether a difference affects the
-   requested answer. Neither textual similarity nor difference determines the
-   verdict. If the reference appears inconsistent with the question and the
-   discrepancy prevents a trustworthy benchmark decision, request review and
-   identify the reference issue.
+2. Map corresponding operations in the target and generated SQL, then compare
+   them against those requirements. Use the target to identify the intended
+   operations and check whether each material difference changes the required
+   answer. Do not return PASS merely because the generated query looks like a
+   plausible answer in isolation. Neither textual similarity nor difference
+   determines the verdict. If the reference appears inconsistent with the
+   question and the discrepancy prevents a trustworthy benchmark decision,
+   request review and identify the reference issue.
 
 3. Check the following requirements wherever they matter:
    - Tables, fields and roles: do the selected fields identify the requested
@@ -84,16 +89,21 @@ proof or an automatic failure.
    because two valid interpretations would happen to return different records.
    Resolve the question or request review.
 
-6. Return a short decision with inspectable evidence. Cite the SQL clauses that
-   preserve or violate a question requirement, or identify the precise missing
-   context. Avoid vague reasons such as "the queries are different" or "both
-   look equivalent." Do not provide private chain-of-thought.
+6. Return a short decision with inspectable evidence from both queries. Name
+   corresponding target and generated clauses, including an absent clause,
+   and explain their effect on a question requirement. For PASS, identify the
+   shared required logic and explain any material-looking difference. For
+   FAIL, identify the target logic and the generated change or omission that
+   violates the requirement. For REVIEW, identify the precise missing context
+   or reference issue. Avoid vague reasons such as "the queries are different"
+   or "both look equivalent." Do not provide private chain-of-thought.
 
 ## Decision rules
 
 `PASS`, `needs_review: false`:
-The available question, reference, SQL and context support that the generated
-query implements the requested meaning. Differences are task-irrelevant or
+The available question, both SQL queries and context support that the generated
+query is semantically equivalent to the target for the required answer, and
+that both implement the requested meaning. Differences are task-irrelevant or
 supported equivalent formulations. This is a judge assessment, not a formal
 proof or a claim about execution results.
 
@@ -149,8 +159,9 @@ The reference uses descending ORDER BY with LIMIT 1; generated selects every
 record equal to MAX(score). If no context establishes whether one winner or
 all co-winners are required, request review. Do not infer unique scores and do
 not reject all-co-winner behavior merely because the reference selects one.
-If the question says "all tied winners," the generated form can pass and a
-reference limited to one may need correction.
+If the question says "all tied winners," the generated form meets that stated
+requirement but a reference limited to one conflicts with it. Request review
+and identify the reference that needs correction.
 
 ### A NULL-dependent rewrite
 

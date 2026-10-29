@@ -5,7 +5,7 @@
   const metricDefinitions = [
     {key: "row_count_match", label: "Row count match", description: "The complete result row counts are equal."},
     {key: "sampled_result_consistency", label: "Sampled consistency", description: "No contradiction found in the supplied sample."},
-    {key: "sql_semantic", label: "SQL semantics", description: "The judge considers the SQL to satisfy the question."},
+    {key: "sql_semantic", label: "SQL semantics", description: "Generated and target SQL are judged equivalent for the question's required answer."},
   ];
   const statuses = ["PASS", "FAIL", "REVIEW", "ERROR"];
   const statusIcons = {PASS: "✓", FAIL: "×", REVIEW: "?", ERROR: "!"};

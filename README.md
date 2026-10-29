@@ -45,11 +45,13 @@ The input must already include generated SQL, query previews, and complete row c
 | --- | --- | --- |
 | `row_count_match` | The complete output row counts are equal. | That the values, records, or SQL logic are correct. |
 | `sampled_result_consistency` | No material contradiction was found in the supplied evidence. | That every row in the complete results matches. |
-| `sql_semantic` | The judge considers the generated SQL to satisfy the question's requirements. | A formal proof of SQL equivalence or correctness. |
+| `sql_semantic` | The judge considers generated SQL semantically equivalent to target SQL for the answer required by the question. | A formal proof of SQL equivalence or correctness. |
 
 The sampled judge can allow supplementary columns, incidental row ordering, and permitted permutations within ties. It must still check differences that affect which records are selected, such as `ORDER BY ... LIMIT`, ranking, and window calculations. It cannot assume that an unseen tie explains every mismatch.
 
-The semantic judge receives the question and SQL context, but no execution rows, row counts, or sampled judge decision. This keeps matching preview data from anchoring its logic assessment. Both judges can still make the same mistake; their agreement is supporting evidence, not independent proof.
+The semantic judge directly compares `target_sql` and `generated_sql`, using the question and optional context/dialect to determine which differences matter. It checks filters, joins, measures, grouping, ranking, and limits; aliases, equivalent rewrites, permitted information columns, and harmless display ordering can differ. Its evidence must refer to both queries. A reference that conflicts with the question requires review.
+
+It receives no execution rows, row counts, or sampled judge decision. This keeps matching preview data from anchoring its logic assessment. Both judges can still make the same mistake; their agreement is supporting evidence, not independent proof.
 
 These are explicit application metrics. The sampled metric is not full-result Execution Accuracy and is not directly comparable to an official BIRD or Spider score. See [the judging guide](docs/judging.md) for the complete rubric and limitations.
 

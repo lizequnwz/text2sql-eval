@@ -57,5 +57,5 @@ def build_sampled_messages(case: EvaluationCase) -> list[BaseMessage]:
 
 
 def build_semantic_messages(case: EvaluationCase) -> list[BaseMessage]:
-    """Give the semantic judge the question/SQL context, never execution previews."""
+    """Compare target and generated SQL under the question, without execution previews."""
     return _messages("sql_semantic", _question_payload(case))
