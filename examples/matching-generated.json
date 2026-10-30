@@ -1,0 +1,5 @@
+{
+  "columns": ["total_sales", "customer_name", "customer_id"],
+  "rows": [[200, "Bob", 2], [100, "Ada", 1]],
+  "total_rows": 2
+}

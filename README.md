@@ -39,6 +39,18 @@ bash scripts/eval.sh report \
 
 The input must already include generated SQL, query previews, and complete row counts. Questions and target SQL alone are the starting gold set, not the prepared scoring input. Follow [Running evaluations](docs/running-evaluations.md) for the full process and input example. The helper works on macOS/Linux; Node.js is not needed.
 
+## Deterministic dataset comparison
+
+Compare complete datasets directly, without SQL, an API key, or model calls:
+
+```bash
+uv run --locked text2sql-eval-match \
+  --target examples/matching-target.json \
+  --generated examples/matching-generated.json
+```
+
+The Python API accepts DataFrames or ordinary row datasets through `compare_datasets(target, generated)`. By default, either subset direction is accepted both within rows and across datasets: one dataset must be fully matched to distinct row occurrences in the other. Repeated values and rows are preserved. Set `dataset_policy="equal"` to require equal row counts and a complete one-to-one matching. Configure `row_policy` and `dataset_policy` independently; no essential-column list is required. The outcome reports accepted/rejected, containment direction, matched pairs, missing rows, and coverage. This separate value-compatibility diagnostic does not change the three evaluation metrics below. See [Deterministic matching](docs/deterministic-matching.md) for the API, configuration, and input formats.
+
 ## What each score means
 
 | Metric key | A confirmed PASS means | What it does not establish |
@@ -79,7 +91,7 @@ Or install directly from GitHub:
 python -m pip install "git+https://github.com/lizequnwz/text2sql-eval.git"
 ```
 
-The runtime dependencies are `langchain-openai`, `langchain-core`, and Pydantic 2. The package does not require an agent framework, database driver, or vector store.
+The runtime dependencies are `langchain-openai`, `langchain-core`, Pydantic 2, NumPy, and SciPy. The optional `dataframes` extra installs pandas. The package does not require an agent framework, database driver, or vector store.
 
 ## Configure the judge
 

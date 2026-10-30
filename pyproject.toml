@@ -1,7 +1,7 @@
 [project]
 name = "text2sql-eval"
-version = "0.2.1"
-description = "Three transparent scores for text-to-SQL: row counts, sampled consistency, and SQL semantics."
+version = "0.3.0"
+description = "Text-to-SQL evaluation and deterministic two-level dataset subset matching."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -18,7 +18,12 @@ dependencies = [
     "langchain-core>=1.0,<2",
     "langchain-openai>=1.0,<2",
     "pydantic>=2.10,<3",
+    "numpy>=1.26,<3",
+    "scipy>=1.13,<2",
 ]
+
+[project.optional-dependencies]
+dataframes = ["pandas>=2.2.3,<4"]
 
 [project.urls]
 Repository = "https://github.com/lizequnwz/text2sql-eval"
@@ -27,6 +32,7 @@ Issues = "https://github.com/lizequnwz/text2sql-eval/issues"
 [project.scripts]
 text2sql-eval = "text2sql_eval.cli:main"
 text2sql-eval-report = "text2sql_eval.report_cli:main"
+text2sql-eval-match = "text2sql_eval.match_cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8,<10", "ruff>=0.14,<1", "build>=1.2,<2", "httpx>=0.28,<1"]
